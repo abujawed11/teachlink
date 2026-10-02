@@ -70,7 +70,7 @@ function App() {
       </nav>
 
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home onSignUp={() => setAuthMode("register-teacher")} />} />
         <Route path="/teachers" element={<FindTeachers />} />
         <Route path="/teachers/:slug" element={<TeacherProfile />} />
         <Route

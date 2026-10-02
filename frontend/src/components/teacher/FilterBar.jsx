@@ -66,12 +66,17 @@ function DebouncedInput({ value, onCommit, ...props }) {
   );
 }
 
+const SECONDARY_KEYS = ["board", "mode", "language", "experienceMin", "feeMax"];
+
 function FilterBar({ filters, lookups, onChange, onClear, activeCount }) {
   const names = (list) => list.map((item) => [item.name, item.name]);
+  const secondaryActive = SECONDARY_KEYS.filter((key) => filters[key]).length;
+  // Start open when a shared link already sets a hidden filter, so it isn't invisible.
+  const [expanded, setExpanded] = useState(secondaryActive > 0);
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] items-end">
         <Field label="Subject">
           <Select
             value={filters.subject}
@@ -88,14 +93,6 @@ function FilterBar({ filters, lookups, onChange, onClear, activeCount }) {
             anyLabel="Any class"
           />
         </Field>
-        <Field label="Board">
-          <Select
-            value={filters.board}
-            onChange={(v) => onChange("board", v)}
-            options={names(lookups.boards)}
-            anyLabel="Any board"
-          />
-        </Field>
         <Field label="City / area">
           <DebouncedInput
             type="text"
@@ -106,40 +103,67 @@ function FilterBar({ filters, lookups, onChange, onClear, activeCount }) {
           />
         </Field>
 
-        <Field label="Teaching mode">
-          <Select
-            value={filters.mode}
-            onChange={(v) => onChange("mode", v)}
-            options={MODES}
-            anyLabel="Any mode"
-          />
-        </Field>
-        <Field label="Language">
-          <Select
-            value={filters.language}
-            onChange={(v) => onChange("language", v)}
-            options={names(lookups.languages)}
-            anyLabel="Any language"
-          />
-        </Field>
-        <Field label="Experience">
-          <Select
-            value={filters.experienceMin}
-            onChange={(v) => onChange("experienceMin", v)}
-            options={EXPERIENCE}
-            anyLabel="Any experience"
-          />
-        </Field>
-        <Field label="Max fee (₹ / month)">
-          <DebouncedInput
-            type="number"
-            min={0}
-            placeholder="e.g. 2000"
-            value={filters.feeMax}
-            onCommit={(v) => onChange("feeMax", v.trim())}
-          />
-        </Field>
+        <button
+          type="button"
+          onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
+          className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
+          More filters
+          {secondaryActive > 0 && (
+            <span className="bg-indigo-600 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
+              {secondaryActive}
+            </span>
+          )}
+          <span className={`text-xs transition-transform ${expanded ? "rotate-180" : ""}`}>▾</span>
+        </button>
       </div>
+
+      {expanded && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mt-3 pt-3 border-t border-slate-100">
+          <Field label="Board">
+            <Select
+              value={filters.board}
+              onChange={(v) => onChange("board", v)}
+              options={names(lookups.boards)}
+              anyLabel="Any board"
+            />
+          </Field>
+          <Field label="Teaching mode">
+            <Select
+              value={filters.mode}
+              onChange={(v) => onChange("mode", v)}
+              options={MODES}
+              anyLabel="Any mode"
+            />
+          </Field>
+          <Field label="Language">
+            <Select
+              value={filters.language}
+              onChange={(v) => onChange("language", v)}
+              options={names(lookups.languages)}
+              anyLabel="Any language"
+            />
+          </Field>
+          <Field label="Experience">
+            <Select
+              value={filters.experienceMin}
+              onChange={(v) => onChange("experienceMin", v)}
+              options={EXPERIENCE}
+              anyLabel="Any experience"
+            />
+          </Field>
+          <Field label="Max fee (₹ / month)">
+            <DebouncedInput
+              type="number"
+              min={0}
+              placeholder="e.g. 2000"
+              value={filters.feeMax}
+              onCommit={(v) => onChange("feeMax", v.trim())}
+            />
+          </Field>
+        </div>
+      )}
 
       {activeCount > 0 && (
         <div className="mt-3 text-right">

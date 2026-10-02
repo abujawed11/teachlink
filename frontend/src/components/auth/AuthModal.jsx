@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 
+// "register-teacher" opens the sign-up form with the teacher checkbox already ticked.
 function AuthModal({ initialMode = "login", onClose }) {
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState(initialMode === "register-teacher" ? "register" : initialMode);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -59,6 +60,7 @@ function AuthModal({ initialMode = "login", onClose }) {
             />
           ) : (
             <RegisterForm
+              defaultAsTeacher={initialMode === "register-teacher"}
               onSuccess={onClose}
               onSwitchToLogin={() => setMode("login")}
             />

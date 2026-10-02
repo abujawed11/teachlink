@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useAuth } from "../../hooks/useAuth";
 
-function RegisterForm({ onSuccess, onSwitchToLogin }) {
+function RegisterForm({ onSuccess, onSwitchToLogin, defaultAsTeacher = false }) {
   const { register } = useAuth();
   const [form, setForm] = useState({
     name: "",
@@ -11,7 +11,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
     password: "",
     confirmPassword: "",
   });
-  const [asTeacher, setAsTeacher] = useState(false);
+  const [asTeacher, setAsTeacher] = useState(defaultAsTeacher);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
