@@ -16,6 +16,20 @@ function requireAuth(req, res, next) {
   }
 }
 
+// For public routes that behave slightly differently for a logged-in viewer (e.g. flagging
+// "this is your own profile"). A missing or invalid session is simply treated as anonymous.
+function optionalAuth(req, res, next) {
+  const token = req.cookies?.accessToken;
+  if (token) {
+    try {
+      req.user = verifyAccessToken(token);
+    } catch (err) {
+      // anonymous
+    }
+  }
+  next();
+}
+
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -42,4 +56,4 @@ async function requireActiveAdmin(req, res, next) {
   }
 }
 
-module.exports = { requireAuth, requireRole, requireActiveAdmin };
+module.exports = { requireAuth, optionalAuth, requireRole, requireActiveAdmin };

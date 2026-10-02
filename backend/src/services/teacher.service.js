@@ -211,9 +211,11 @@ async function deleteAvailability(userId, availabilityId) {
   return getOwnProfile(userId);
 }
 
-function toPublicProfile(profile) {
+function toPublicProfile(profile, viewerId) {
   return {
     slug: profile.slug,
+    // Lets the frontend hide actions that make no sense on your own page (e.g. "Contact").
+    isOwner: viewerId != null && profile.userId === viewerId,
     name: profile.user.name,
     headline: profile.headline,
     bio: profile.bio,
@@ -265,7 +267,7 @@ function toPublicProfile(profile) {
   };
 }
 
-async function getPublicProfileBySlug(slug) {
+async function getPublicProfileBySlug(slug, viewerId) {
   const profile = await prisma.teacherProfile.findUnique({
     where: { slug },
     include: { user: true, ...PROFILE_INCLUDE },
@@ -280,7 +282,7 @@ async function getPublicProfileBySlug(slug) {
     throw new AppError("Teacher profile not found", 404, "NOT_FOUND");
   }
 
-  return toPublicProfile(profile);
+  return toPublicProfile(profile, viewerId);
 }
 
 module.exports = {

@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { sendContactRequest } from "../../api/contactApi";
+import { useAuth } from "../../hooks/useAuth";
 import { getInputClass } from "../onboarding/FormField";
 
 const MAX_MESSAGE = 1000;
 const PHONE_PATTERN = /^\+?[\d\s-]{7,20}$/;
 
 function ContactModal({ slug, teacherName, onClose }) {
+  const { user } = useAuth();
   const [message, setMessage] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(user?.phone || "");
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);

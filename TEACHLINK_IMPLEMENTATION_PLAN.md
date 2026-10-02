@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–7, 9 and 10 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 11 (hardening) and Phase 12 (deployment) are still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–10 are all done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 11 (hardening) and Phase 12 (deployment) are still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
 
 ---
 
@@ -393,6 +393,7 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **API:** `/api/auth/*` from §11, with `register`/`register-teacher` now requiring `username` + `confirmPassword` in addition to name/email/password, and `login` taking `username` + `password`.
 - **Testing checklist:** register → login → `GET /me` returns correct user; logout clears cookies; wrong username/password rejected with generic message; duplicate email and duplicate username both rejected with distinct error codes; protected route rejects unauthenticated requests. All verified via curl.
 - **Definition of Done:** a teacher and a normal user can both sign up and log in through the modal; sessions persist across reload via cookie.
+- **Session refresh (bug found and fixed later):** the access cookie lasts 15 minutes and the refresh cookie 30 days, but the frontend originally never called `POST /api/auth/refresh`, so every user was effectively logged out after ~15 minutes (requests failed with 401 and a page reload showed them logged out). Fixed in `frontend/src/api/refresh.js` + `client.js`: an axios response interceptor renews the access token on a 401 and retries the request **once**, concurrent 401s share a single refresh call, `/auth/*` endpoints are excluded (so a wrong password still surfaces as a normal 401), and a failed refresh fires a `auth:session-expired` event that clears the user. `AuthContext.loadUser` also refreshes before treating a returning visitor as logged out. Verified with 11 automated checks (expired token, parallel requests, wrong password, suspended user, bad refresh token, no retry loop).
 
 ### Phase 3 — Teacher Profile Backend ✅ DONE
 - **Objective:** CRUD for a teacher's own profile, still without join tables.
@@ -437,13 +438,14 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Known behaviour:** sorting by fee ascending lists teachers with no fee first (MySQL null ordering). Decide later whether to push them last or hide them.
 - **Definition of Done:** a visitor can search and filter to a relevant teacher list from Home/Find Teachers. ✅
 
-### Phase 8 — Teacher Dashboard & Profile Management ✅ MOSTLY DONE
+### Phase 8 — Teacher Dashboard & Profile Management ✅ DONE
 - **Objective:** Logged-in teacher can review/edit everything post-onboarding.
 - **Built:** the nav's **My Profile** now links to `/dashboard` (`pages/dashboard/MyProfile.jsx`), not the wizard. It shows a status bar (Draft/Published badge, **Publish/Unpublish** button, "View public page" link, profile-strength meter, server publish errors) above the profile itself. A brand-new teacher with no headline and no subjects is redirected to `/onboarding` first.
 - **Profile layout:** `components/profile/ProfileView.jsx` is **one component shared by the owner dashboard and the public page** — a sticky identity card (photo, name, headline, location, experience, fee, teaching modes, contact button) beside tabs (About · Teaching · Experience · Availability). Owner mode adds **Edit / + Add** buttons per block; public mode hides empty tabs.
 - **Per-section editing:** `components/profile/EditSectionModal.jsx` opens the matching onboarding step component in a modal (Esc / backdrop / Cancel close it), validates with the same `validateStep` rules, and saves via the shared `components/onboarding/stepSave.js` (also now used by the wizard, so the two can't drift). Sub-resources (qualifications, experience, slots) still save immediately on add/remove; closing the modal refetches the profile.
-- **Not built:** Account Settings page (change name/password), view-count display, `GET/PATCH /api/users/me`.
-- **Definition of Done:** a teacher can fully self-manage their profile without developer intervention. ✅ (except Account Settings)
+- **Account Settings (added later):** `/settings` (any logged-in user; reached by clicking "Hi, <name>" in the nav). *Account details* — username and email are shown read-only; name and a private phone number are editable (`PATCH /api/users/me`, which can only ever change `name` and `phone`, never role or email). The phone only pre-fills the phone field when the user sends a contact request; it is never public. *Change password* (`POST /api/users/me/password`) — current password, new password (min 8) and confirmation; a wrong current password returns **400 `INVALID_PASSWORD`, not 401**, so the session isn't treated as expired. Reading the current user stays `GET /api/auth/me` (no separate `GET /api/users/me`). Other devices' sessions are **not** invalidated by a password change (tokens are stateless).
+- **Not built:** view-count display; editing (rather than delete + re-add) of qualifications, experience and availability.
+- **Definition of Done:** a teacher can fully self-manage their profile without developer intervention. ✅
 
 ### Phase 9 — Contact Flow ✅ DONE (login required — deliberate change)
 - **Decision:** contacting a teacher **requires an account** (the original plan allowed anonymous contact). Reasons: the teacher sees exactly who is writing, abuse can be limited per account and traced, a sender gets a request history, and the plain `USER` role finally has a purpose.
@@ -480,7 +482,7 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Backend:** tighten rate limits on auth, review Helmet/CORS config for prod domains, add indexes if query plans need them, add `sharp` image resizing, write integration tests for auth/profile/search.
 - **Secrets & credentials (found during Phase 10 setup):** `backend/.env` still has the placeholder `JWT_SECRET=change_this_secret` / `JWT_REFRESH_SECRET=change_this_refresh_secret` — anyone who knows them can forge a login token, including an ADMIN one. Replace both with long random values (and different from each other), and use separate values per environment. Use a strong admin password (the dev `admin123` passes the 8-character minimum but is not acceptable for a public deployment); consider removing `ADMIN_PASSWORD` from `.env` after the admin is seeded. Consider failing startup in production if the JWT secrets are the placeholder values.
 - **Suspension gap:** a suspended user's existing access token stays valid for up to 15 minutes on endpoints that don't re-check status — decide whether `requireAuth` should check status (costs one query per request) or keep the short TTL.
-- **Frontend:** basic accessibility pass, loading/error states everywhere, form validation polish; the protected-route redirect currently sends logged-out visitors silently to the home page instead of prompting login.
+- **Frontend:** basic accessibility pass, loading/error states everywhere, form validation polish.
 - **Testing checklist:** run full manual QA pass (§20 checklist), fix any privacy leaks found via direct API inspection.
 - **Definition of Done:** no known security/privacy gaps against §15/§16; core flows covered by automated tests.
 
@@ -567,7 +569,7 @@ MVP is complete when:
 - [x] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
 - [x] Phase 6 — Public teacher profile (full, privacy-correct; contact form deferred to Phase 9)
 - [x] Phase 7 — Teacher search & discovery (API, Find Teachers, Home)
-- [~] Phase 8 — Teacher dashboard & profile management (done except Account Settings)
+- [x] Phase 8 — Teacher dashboard & profile management (incl. Account Settings)
 - [x] Phase 9 — Contact flow (login required; in-app inbox, no email yet)
 - [x] Phase 10 — Admin basics (users, teachers, lookups; hide/suspend/verify)
 - [ ] Phase 11 — Security, testing, optimization
@@ -593,6 +595,10 @@ Everything below was added or done differently from what the sections above orig
 - Home page content (hero quick-search, newest teachers, how-it-works, teacher CTA) and a `register-teacher` entry point that pre-ticks the teacher checkbox in the sign-up modal (`defaultAsTeacher` prop on `RegisterForm`).
 - `components/onboarding/stepSave.js` — shared "save this step" logic used by both the wizard and the edit modal.
 - Collapsible "More filters" panel on Find Teachers.
+- Session refresh interceptor (above) — fixes users being logged out after 15 minutes.
+- Account Settings page and `PATCH /api/users/me`, `POST /api/users/me/password`; the contact modal pre-fills the account phone.
+- Public profile now carries `isOwner` (new `optionalAuth` middleware identifies a logged-in viewer on the otherwise public route; an invalid cookie is just anonymous) so the "Contact teacher" button is hidden on your own page.
+- `ProtectedRoute` shows a "Please log in to continue" prompt with a Log in button (and renders the page right after login) instead of silently redirecting logged-out visitors to Home; a wrong-role user is still redirected.
 - Phase 10 admin: a separate `isHiddenByAdmin` flag (instead of §12's "hide sets `isPublished=false`", which a teacher could simply undo by re-publishing), `Language.isActive`, DB-checked `requireActiveAdmin`, suspended users signed out via `/api/auth/me`, and an env-driven admin seed.
 - Contact-number gate: `contactNumber` removed from public payloads (`hasContactNumber` flag instead), unlocked by logged-in users via `GET /api/teachers/:slug/contact-number` with a per-account daily cap and a `ContactReveal` audit table. **This changes the Phase 6 public-profile contract** (`contactNumber` is no longer returned publicly).
 - Phase 9 contact flow with an in-app inbox (`/requests`) and nav unread badge — and a decision to **require login to contact** a teacher, changing the original "anonymous contact form" idea in §8/§9/§16.
@@ -613,9 +619,8 @@ Everything below was added or done differently from what the sections above orig
 
 **Still open (carry forward)**
 - Edit (not just add/delete) for qualifications, experience and availability.
-- Account Settings page and `/api/users/me`.
 - Fee-sort null ordering; whether to make a photo mandatory before publish (§25 #5).
 - Replace placeholder JWT secrets and the dev admin password before deployment (Phase 11).
 - Admin audit log (who suspended/hid what, and why); reports/flagging and bulk actions.
 - Phases 11–12 unchanged: security/testing, deployment.
-- Email notifications for new contact requests; hide the Contact button on a teacher's own public page.
+- Email notifications for new contact requests.

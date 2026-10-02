@@ -1,7 +1,7 @@
 const { Router } = require("express");
 
 const validate = require("../middleware/validate");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, optionalAuth, requireRole } = require("../middleware/auth");
 const { uploadPhotoSingle } = require("../middleware/upload");
 const {
   updateProfileSchema,
@@ -65,6 +65,6 @@ router.post(
 
 router.get("/:slug/contact-number", requireAuth, contactController.revealNumber);
 
-router.get("/:slug", controller.getBySlug);
+router.get("/:slug", optionalAuth, controller.getBySlug);
 
 module.exports = router;

@@ -91,7 +91,7 @@ function TeacherProfile({ onLogin }) {
       <ProfileView
         profile={visibleProfile}
         name={profile.name}
-        onContact={handleContact}
+        onContact={profile.isOwner ? undefined : handleContact}
         onRevealContact={handleRevealContact}
         contactError={numberError}
       />

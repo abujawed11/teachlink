@@ -112,7 +112,7 @@ const search = asyncHandler(async (req, res) => {
 });
 
 const getBySlug = asyncHandler(async (req, res) => {
-  const profile = await teacherService.getPublicProfileBySlug(req.params.slug);
+  const profile = await teacherService.getPublicProfileBySlug(req.params.slug, req.user?.sub);
   res.json({ profile });
 });
 

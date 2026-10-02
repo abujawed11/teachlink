@@ -12,6 +12,7 @@ import AdminPanel from "./pages/admin/AdminPanel";
 import MyProfile from "./pages/dashboard/MyProfile";
 import OnboardingWizard from "./pages/onboarding/OnboardingWizard";
 import Requests from "./pages/Requests";
+import Settings from "./pages/Settings";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
 
@@ -22,6 +23,7 @@ function App() {
   const { pathname } = useLocation();
   const isTeacher = user?.role === "TEACHER";
   const isAdmin = user?.role === "ADMIN";
+  const openLogin = () => setAuthMode("login");
 
   // Keep the nav badge fresh as a teacher moves around the app.
   useEffect(() => {
@@ -90,7 +92,9 @@ function App() {
 
           {!loading && user && (
             <>
-              <span className="text-slate-600">Hi, {user.name}</span>
+              <Link to="/settings" title="Account settings" className="text-slate-600 hover:text-indigo-600">
+                Hi, {user.name}
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -108,20 +112,28 @@ function App() {
         <Route path="/teachers" element={<FindTeachers />} />
         <Route
           path="/teachers/:slug"
-          element={<TeacherProfile onLogin={() => setAuthMode("login")} />}
+          element={<TeacherProfile onLogin={openLogin} />}
         />
         <Route
           path="/admin"
           element={
-            <ProtectedRoute role="ADMIN">
+            <ProtectedRoute role="ADMIN" onLogin={openLogin}>
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute onLogin={openLogin}>
+              <Settings />
             </ProtectedRoute>
           }
         />
         <Route
           path="/requests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute onLogin={openLogin}>
               <Requests onUnreadChange={setUnread} />
             </ProtectedRoute>
           }
@@ -129,7 +141,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute role="TEACHER">
+            <ProtectedRoute role="TEACHER" onLogin={openLogin}>
               <MyProfile />
             </ProtectedRoute>
           }
@@ -137,7 +149,7 @@ function App() {
         <Route
           path="/onboarding"
           element={
-            <ProtectedRoute role="TEACHER">
+            <ProtectedRoute role="TEACHER" onLogin={openLogin}>
               <OnboardingWizard />
             </ProtectedRoute>
           }
