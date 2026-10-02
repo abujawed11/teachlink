@@ -7,15 +7,7 @@ import {
   getLanguages,
   getSubjects,
 } from "../../api/lookupApi";
-import {
-  getMyProfile,
-  publishMyProfile,
-  setMyBoards,
-  setMyGrades,
-  setMyLanguages,
-  setMySubjects,
-  updateMyProfile,
-} from "../../api/teacherApi";
+import { getMyProfile, publishMyProfile } from "../../api/teacherApi";
 import ProfilePreviewCard from "../../components/onboarding/ProfilePreviewCard";
 import ProfileStrengthBar from "../../components/onboarding/ProfileStrengthBar";
 import Stepper from "../../components/onboarding/Stepper";
@@ -26,6 +18,7 @@ import StepProfessional from "../../components/onboarding/steps/StepProfessional
 import StepReview from "../../components/onboarding/steps/StepReview";
 import StepSubjects from "../../components/onboarding/steps/StepSubjects";
 import StepTuition from "../../components/onboarding/steps/StepTuition";
+import { saveStep } from "../../components/onboarding/stepSave";
 import { computeProfileStrength, validateStep } from "../../components/onboarding/validation";
 
 const STEP_LABELS = [
@@ -37,25 +30,6 @@ const STEP_LABELS = [
   "Availability",
   "Review",
 ];
-
-const STEP_SCALAR_FIELDS = {
-  1: ["headline", "bio", "photoUrl", "gender"],
-  2: ["qualificationSummary", "experienceYears"],
-  4: [
-    "onlineAvailable",
-    "offlineAvailable",
-    "homeTuitionAvailable",
-    "studentCanVisit",
-    "groupTuitionAvailable",
-    "individualTuitionAvailable",
-    "demoClassAvailable",
-    "teachingRadiusKm",
-    "feeMin",
-    "feeMax",
-    "contactPreference",
-  ],
-  5: ["country", "state", "city", "area", "pincode"],
-};
 
 function OnboardingWizard() {
   const navigate = useNavigate();
@@ -113,20 +87,6 @@ function OnboardingWizard() {
     clearErrors([field]);
   };
 
-  const pickFields = (fields) =>
-    fields.reduce((acc, field) => {
-      acc[field] = profile[field];
-      return acc;
-    }, {});
-
-  const saveRelations = async () => {
-    await setMySubjects(profile.subjects.map((s) => s.id));
-    await setMyGrades(profile.grades.map((g) => g.id));
-    await setMyBoards(profile.boards.map((b) => b.id));
-    const updated = await setMyLanguages(profile.languages.map((l) => l.id));
-    return updated;
-  };
-
   const handleNext = async () => {
     setError("");
 
@@ -139,12 +99,7 @@ function OnboardingWizard() {
 
     setSaving(true);
     try {
-      let updated = profile;
-      if (currentStep === 3) {
-        updated = await saveRelations();
-      } else if (STEP_SCALAR_FIELDS[currentStep]) {
-        updated = await updateMyProfile(pickFields(STEP_SCALAR_FIELDS[currentStep]));
-      }
+      const updated = await saveStep(currentStep, profile);
       setProfile(updated);
     } catch (err) {
       setError(err.response?.data?.error?.message || "Could not save this step");

@@ -76,3 +76,8 @@ export async function deleteAvailability(id) {
   const { data } = await apiClient.delete(`/teachers/me/availability/${id}`);
   return data.profile;
 }
+
+export async function getPublicTeacher(slug) {
+  const { data } = await apiClient.get(`/teachers/${slug}`);
+  return data.profile;
+}

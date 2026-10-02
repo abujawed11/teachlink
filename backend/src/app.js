@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
+const morgan = require("morgan");
 
 const env = require("./config/env");
 const routes = require("./routes");
@@ -11,6 +12,7 @@ const { UPLOAD_DIR } = require("./middleware/upload");
 
 const app = express();
 
+app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 app.use(helmet());
 app.use(cors({ origin: env.frontendUrl, credentials: true }));
 app.use(express.json());

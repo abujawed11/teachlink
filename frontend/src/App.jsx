@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import FindTeachers from "./pages/FindTeachers";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import MyProfile from "./pages/dashboard/MyProfile";
 import OnboardingWizard from "./pages/onboarding/OnboardingWizard";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
@@ -28,7 +29,7 @@ function App() {
           Find Teachers
         </Link>
         {user?.role === "TEACHER" && (
-          <Link to="/onboarding" className="text-slate-600 hover:text-indigo-600">
+          <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600">
             My Profile
           </Link>
         )}
@@ -72,6 +73,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/teachers" element={<FindTeachers />} />
         <Route path="/teachers/:slug" element={<TeacherProfile />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <MyProfile />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/onboarding"
           element={
