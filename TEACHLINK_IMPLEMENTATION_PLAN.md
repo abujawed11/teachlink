@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–4 are done (project skeleton, DB foundation, authentication incl. login/register modal, teacher profile backend CRUD + publish rule, scalar-field onboarding wizard). Phase 5 onward is still TODO. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–7 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 9 (contact flow) onward is still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
 
 ---
 
@@ -32,10 +32,10 @@ teachlink/
 ```
 
 **Backend deps installed:** express 5, cors, dotenv, bcryptjs, jsonwebtoken, cookie-parser, helmet, express-rate-limit, zod, prisma 6 + @prisma/client 6, nodemon (dev).
-**Not yet installed (backend):** multer/sharp (file upload), slugify, any logging lib.
+**Added since:** multer (photo upload), morgan (HTTP request logging). **Not yet installed (backend):** sharp (image resizing), any structured logging lib (pino), test tooling.
 
 **Frontend deps installed:** react 19, react-dom 19. Dev: vite 8, @vitejs/plugin-react, oxlint, @types/react(-dom).
-**Not yet installed (frontend):** react-router-dom, axios/fetch wrapper, any UI/CSS framework, form library.
+**Added since:** react-router-dom, axios, Tailwind CSS (utility styling; no form library — forms are hand-rolled). **Not yet installed (frontend):** test tooling.
 
 **Database:** MySQL, reachable via `DATABASE_URL` in `backend/.env`. One migration applied (`User` table only).
 
@@ -170,6 +170,7 @@ Guiding rule: `User` holds only account/auth concerns. Everything teacher-specif
 - `teachingRadiusKm` Int? (nullable; only relevant if home tuition)
 - `feeMin` Int?, `feeMax` Int? (store in smallest currency unit or plain rupees — document the choice in code)
 - `contactPreference` Enum `ContactPreference { PLATFORM_ONLY PHONE WHATSAPP }` default `PLATFORM_ONLY`
+- `contactNumber` String? — **added after the original plan**: the number shown publicly when `contactPreference` is PHONE or WHATSAPP. Deliberately separate from the private `User.phone`, so a teacher can publish a different WhatsApp number. Required (server + client) whenever the preference is not `PLATFORM_ONLY`; only returned by the public API when the teacher opted in.
 - `isPublished` Boolean @default(false) — draft vs public (see §7)
 - `isVerified` Boolean @default(false) — reserved for future verification
 - `profileViews` Int @default(0) — cheap counter, optional
@@ -411,34 +412,38 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Post-launch refinements (same phase, added after initial user feedback):** per-step client-side validation (required-field asterisks on Headline/Teaching Modes/City, inline errors, blocks "Save & Continue" until fixed) instead of only surfacing errors at final publish; a live "Profile Strength" percentage meter with encouraging copy; a live preview panel showing the profile card updating in real time as fields change; a real click/drag-to-upload photo picker (see §13) replacing the original URL-text-field placeholder.
 - **Definition of Done:** a teacher can go from registration to a published scalar-field profile end-to-end in the UI.
 
-### Phase 5 — Relational Data (Subjects/Grades/Boards/Languages + sub-resources)
+### Phase 5 — Relational Data (Subjects/Grades/Boards/Languages + sub-resources) ✅ DONE
 - **Objective:** Add many-to-many and one-to-many detail tables.
-- **Backend:** `TeacherSubject/Grade/Board/Language` join tables, `TeacherQualification`, `TeacherExperience`, `TeacherAvailability`; endpoints under `/api/teachers/me/*` and `/api/lookups/*`.
-- **DB changes:** new migration for all join/detail tables from §5.
-- **Frontend:** onboarding steps 3/4/7 become real multi-selects/sub-forms against these endpoints; `lookups` fetched for filter/form options.
-- **Testing checklist:** adding/removing a subject doesn't duplicate rows (composite PK dedupes); deleting a qualification/experience/availability row doesn't affect others.
-- **Definition of Done:** full §5 schema implemented; onboarding captures all planned fields.
+- **Backend built:** join tables `TeacherSubject/Grade/Board/Language`; detail tables `TeacherQualification`, `TeacherExperience`, `TeacherAvailability` (migration `add_relational_teacher_dat`). Public lookups at `GET /api/lookups/subjects|grades|boards|languages` (active values only; grades ordered by `sortOrder`).
+- **API as built:** selections use `PUT /api/teachers/me/subjects|grades|boards|languages` with `{ ids: [...] }` — each call **replaces the whole selection in one transaction** (delete + `createMany` with `skipDuplicates`), rather than the incremental `POST`s sketched in §11. Qualifications, experience and availability have `POST /me/<x>` and `DELETE /me/<x>/:id` (ownership checked against the caller's own profile). Every mutating call returns the full, re-shaped own profile.
+- **Publish rule extended:** now also requires at least one subject and one grade (the Phase 3 note that this would follow once the tables existed).
+- **Frontend built:** onboarding steps for Subjects (subjects/classes/boards/languages multi-selects), Professional (qualifications + experience sub-forms) and Availability (day/time slots), plus `api/lookupApi.js`.
+- **Seed:** lookup tables are empty until `npm run prisma:seed` (alias for `prisma db seed`) is run — required on every fresh database.
+- **Not built:** editing an existing qualification/experience/availability row — only add and delete exist (edit = delete + re-add). Revisit if this becomes annoying.
+- **Definition of Done:** full §5 schema implemented; onboarding captures all planned fields. ✅
 
-### Phase 6 — Public Teacher Profile (full)
+### Phase 6 — Public Teacher Profile (full) ✅ DONE (contact form deferred to Phase 9)
 - **Objective:** Complete public profile page per §8.
-- **Backend:** `GET /api/teachers/:slug` now joins subjects/grades/boards/languages/qualifications/experience/availability; serializer that excludes private fields and applies `contactPreference`.
-- **Frontend:** `TeacherProfile.jsx` full layout, mobile-first; contact CTA (form submission, no real messaging backend yet — can email-forward or store a `ContactRequest` row for teacher to see in dashboard).
-- **Testing checklist:** unpublished/suspended profiles return 404 publicly; private fields never appear in the response payload (verify with a raw curl, not just the UI).
-- **Definition of Done:** any visitor can view a complete, correctly-scoped public profile.
+- **Backend:** `GET /api/teachers/:slug` joins subjects/grades/boards/languages/qualifications/experience/availability and serialises through `toPublicProfile`, which excludes email, phone, pincode, `profileViews` and raw ids. 404 for unpublished, suspended or unknown slugs. `contactNumber` is returned only when `contactPreference` is not `PLATFORM_ONLY`.
+- **Frontend:** `pages/TeacherProfile.jsx` renders the shared `components/profile/ProfileView.jsx` (see Phase 8) in read-only mode: empty sections/tabs are hidden, `document.title` is set to the teacher's name, and a friendly "Teacher not found" page covers 404s. A Call/WhatsApp button appears when the teacher opted in to showing a number (`tel:` / `wa.me/<digits>` links).
+- **Deferred:** the platform contact-request form is Phase 9; the SEO items in §22 (sitemap, robots, JSON-LD) are still TODO.
+- **Definition of Done:** any visitor can view a complete, correctly-scoped public profile. ✅
 
-### Phase 7 — Teacher Search & Discovery
-- **Objective:** `/api/teachers` search per §9, `FindTeachers.jsx` UI.
-- **Backend:** `search.service.js`, `validators/search.schema.js`, query-building against join tables, pagination.
-- **Frontend:** `FilterBar`, `TeacherCard`, pagination controls, URL-synced filters (so results are shareable/bookmarkable).
-- **Testing checklist:** each filter in isolation and combined; empty results handled gracefully; pagination boundaries correct; only published+active profiles appear.
-- **Definition of Done:** a visitor can search and filter to a relevant teacher list from Home/Find Teachers.
+### Phase 7 — Teacher Search & Discovery ✅ DONE
+- **Backend:** `GET /api/teachers` (`validators/search.schema.js`, `services/search.service.js`). Filters, all optional: `subject`, `grade`, `board`, `language` (names; comma-separated list = match **any**, different filters combine with AND), `city` (partial match on city **or** area), `mode` (`online|offline|home|visit|group|individual|demo`), `feeMax` (teacher's lowest fee ≤ value; teachers with no fee are excluded when used), `experienceMin`, `sort` (`newest` default | `experience_desc` | `fee_asc` | `fee_desc`), `page`, `pageSize` (default 12, max 50). Always restricted to `isPublished` + `User.status = ACTIVE`. Returns **card-sized public data only** plus `pagination { page, pageSize, total, totalPages }`; ties are broken by `id` so pagination is stable. Invalid input returns 400 with a clear message; blank values (`?city=`) are ignored.
+- **Fix made along the way:** Express 5 makes `req.query` read-only, so `middleware/validate.js` now handles `source = "query"` by redefining the property instead of assigning to it.
+- **Frontend:** `pages/FindTeachers.jsx`, `components/teacher/FilterBar.jsx`, `components/teacher/TeacherCard.jsx`. Filters, sort and page live in the **URL** (shareable/bookmarkable, survives refresh/back). Subject, Class and City are always visible; Board, Mode, Language, Experience and Max fee sit under a collapsible **"More filters"** button with an active-count badge (auto-opens when a shared link sets one). Text inputs debounce 400 ms; stale responses are discarded; empty-state and pagination handled.
+- **Home page (`pages/Home.jsx`, added scope):** hero with a Subject + City quick search that deep-links into Find Teachers, quick subject chips, a "Newly joined teachers" row (newest 6 via the same search endpoint), a "How it works" strip, and an "Are you a teacher?" call-to-action that opens sign-up with the teacher checkbox pre-ticked (hidden for logged-in teachers).
+- **Known behaviour:** sorting by fee ascending lists teachers with no fee first (MySQL null ordering). Decide later whether to push them last or hide them.
+- **Definition of Done:** a visitor can search and filter to a relevant teacher list from Home/Find Teachers. ✅
 
-### Phase 8 — Teacher Dashboard & Profile Management
+### Phase 8 — Teacher Dashboard & Profile Management ✅ MOSTLY DONE
 - **Objective:** Logged-in teacher can review/edit everything post-onboarding.
-- **Frontend:** `TeacherDashboard.jsx` (completeness indicator, publish status, view-count if shown), `EditProfile.jsx` reusing onboarding step components.
-- **Backend:** reuse Phase 3/5 endpoints; add `GET /api/teachers/me` (own full profile incl. private fields, for editing).
-- **Testing checklist:** edits persist and immediately reflect on the public profile; unpublishing hides the profile from search/public view.
-- **Definition of Done:** a teacher can fully self-manage their profile without developer intervention.
+- **Built:** the nav's **My Profile** now links to `/dashboard` (`pages/dashboard/MyProfile.jsx`), not the wizard. It shows a status bar (Draft/Published badge, **Publish/Unpublish** button, "View public page" link, profile-strength meter, server publish errors) above the profile itself. A brand-new teacher with no headline and no subjects is redirected to `/onboarding` first.
+- **Profile layout:** `components/profile/ProfileView.jsx` is **one component shared by the owner dashboard and the public page** — a sticky identity card (photo, name, headline, location, experience, fee, teaching modes, contact button) beside tabs (About · Teaching · Experience · Availability). Owner mode adds **Edit / + Add** buttons per block; public mode hides empty tabs.
+- **Per-section editing:** `components/profile/EditSectionModal.jsx` opens the matching onboarding step component in a modal (Esc / backdrop / Cancel close it), validates with the same `validateStep` rules, and saves via the shared `components/onboarding/stepSave.js` (also now used by the wizard, so the two can't drift). Sub-resources (qualifications, experience, slots) still save immediately on add/remove; closing the modal refetches the profile.
+- **Not built:** Account Settings page (change name/password), view-count display, `GET/PATCH /api/users/me`.
+- **Definition of Done:** a teacher can fully self-manage their profile without developer intervention. ✅ (except Account Settings)
 
 ### Phase 9 — Contact Flow
 - **Objective:** Safe default contact path (§16).
@@ -541,10 +546,10 @@ MVP is complete when:
 - [x] Phase 2 — Authentication (register/login/logout/me, cookie-based JWT, login/register modal, username field)
 - [x] Phase 3 — Teacher profile backend (scalar CRUD + publish rule)
 - [x] Phase 4 — Teacher onboarding frontend (multi-step UI, scalar fields)
-- [ ] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
-- [ ] Phase 6 — Public teacher profile (full, privacy-correct)
-- [ ] Phase 7 — Teacher search & discovery
-- [ ] Phase 8 — Teacher dashboard & profile management
+- [x] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
+- [x] Phase 6 — Public teacher profile (full, privacy-correct; contact form deferred to Phase 9)
+- [x] Phase 7 — Teacher search & discovery (API, Find Teachers, Home)
+- [~] Phase 8 — Teacher dashboard & profile management (done except Account Settings)
 - [ ] Phase 9 — Contact flow
 - [ ] Phase 10 — Admin basics
 - [ ] Phase 11 — Security, testing, optimization
@@ -559,3 +564,33 @@ Sensible defaults were applied throughout; the following are worth explicit conf
 3. **Contact request delivery** — Phase 9 assumes contact requests are stored and viewed in-dashboard; if you want teachers notified by email immediately, an email-sending service (e.g. Resend/SendGrid) needs to be chosen then — not required for MVP functionality itself.
 4. **Date of birth** — plan deliberately **excludes** DOB from MVP since no current feature needs it (per your own note to only collect if genuinely needed); flag if a future feature (e.g. age-appropriate matching) requires it.
 5. **Teacher photo requirement** — plan treats profile photo as optional; confirm if a photo should be mandatory before publish, since it affects conversion/trust on discovery.
+
+## 26. Change Log — Built vs. Original Plan
+
+Everything below was added or done differently from what the sections above originally described.
+
+**Added (not in the original plan)**
+- `TeacherProfile.contactNumber` + migration `add_contact_number`; form field on the Tuition step; server and client validation; public Call/WhatsApp button (see §5).
+- `morgan` request logging in `app.js` (`dev` format locally, `combined` when `NODE_ENV=production`). Unexpected errors were already logged by `errorHandler`.
+- Home page content (hero quick-search, newest teachers, how-it-works, teacher CTA) and a `register-teacher` entry point that pre-ticks the teacher checkbox in the sign-up modal (`defaultAsTeacher` prop on `RegisterForm`).
+- `components/onboarding/stepSave.js` — shared "save this step" logic used by both the wizard and the edit modal.
+- Collapsible "More filters" panel on Find Teachers.
+
+**Changed from the original design**
+- Relation selections are `PUT` (replace-all in a transaction) instead of incremental `POST`s (§11).
+- "My Profile" goes to `/dashboard` (profile view + modal editing); `/onboarding` is only the first-time wizard. This pulled most of Phase 8 and the Phase 6 page forward.
+- Public profile and owner profile are one shared component instead of separate pages.
+- The public search endpoint filters by lookup **names** (readable, shareable URLs) rather than ids, and `city` also matches `area`.
+- `validate` middleware supports `"query"` (Express 5 read-only `req.query` workaround).
+- Fees display with a ₹ sign on profile and cards (the onboarding preview card still shows no symbol).
+
+**Operational notes**
+- Fresh database: `npx prisma migrate dev`, then `npm run prisma:seed` (lookups are empty otherwise).
+- On Windows, stop the running backend before `npx prisma generate`/`migrate dev`, or Prisma can't replace its locked engine file (`EPERM`).
+- The shadow database used by `migrate dev` needs broad MySQL privileges for the dev user (`GRANT ALL ON *.*`), including `INDEX`.
+
+**Still open (carry forward)**
+- Edit (not just add/delete) for qualifications, experience and availability.
+- Account Settings page and `/api/users/me`.
+- Fee-sort null ordering; whether to make a photo mandatory before publish (§25 #5).
+- Phases 9–12 unchanged: contact flow, admin, security/testing, deployment.
