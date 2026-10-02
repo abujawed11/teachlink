@@ -3,6 +3,7 @@ const path = require("path");
 
 const asyncHandler = require("../middleware/asyncHandler");
 const teacherService = require("../services/teacher.service");
+const searchService = require("../services/search.service");
 const AppError = require("../utils/AppError");
 const { UPLOAD_DIR } = require("../middleware/upload");
 
@@ -105,6 +106,11 @@ const deleteAvailability = asyncHandler(async (req, res) => {
   res.json({ profile });
 });
 
+const search = asyncHandler(async (req, res) => {
+  const result = await searchService.searchTeachers(req.query);
+  res.json(result);
+});
+
 const getBySlug = asyncHandler(async (req, res) => {
   const profile = await teacherService.getPublicProfileBySlug(req.params.slug);
   res.json({ profile });
@@ -126,5 +132,6 @@ module.exports = {
   deleteExperience,
   addAvailability,
   deleteAvailability,
+  search,
   getBySlug,
 };

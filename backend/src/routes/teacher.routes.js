@@ -10,10 +10,13 @@ const {
   experienceSchema,
   availabilitySchema,
 } = require("../validators/teacher.schema");
+const { searchSchema } = require("../validators/search.schema");
 const controller = require("../controllers/teacher.controller");
 
 const router = Router();
 const teacherOnly = [requireAuth, requireRole("TEACHER")];
+
+router.get("/", validate(searchSchema, "query"), controller.search);
 
 router.get("/me", ...teacherOnly, controller.getMe);
 router.patch("/me", ...teacherOnly, validate(updateProfileSchema), controller.updateMe);

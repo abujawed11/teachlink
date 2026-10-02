@@ -81,3 +81,8 @@ export async function getPublicTeacher(slug) {
   const { data } = await apiClient.get(`/teachers/${slug}`);
   return data.profile;
 }
+
+export async function searchTeachers(params) {
+  const { data } = await apiClient.get("/teachers", { params });
+  return data;
+}
