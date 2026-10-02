@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link, Route, Routes } from "react-router-dom";
 
 import AuthModal from "./components/auth/AuthModal";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import FindTeachers from "./pages/FindTeachers";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import OnboardingWizard from "./pages/onboarding/OnboardingWizard";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
 
@@ -25,6 +27,11 @@ function App() {
         <Link to="/teachers" className="text-slate-600 hover:text-indigo-600">
           Find Teachers
         </Link>
+        {user?.role === "TEACHER" && (
+          <Link to="/onboarding" className="text-slate-600 hover:text-indigo-600">
+            My Profile
+          </Link>
+        )}
 
         <div className="ml-auto flex items-center gap-3">
           {!loading && !user && (
@@ -65,6 +72,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/teachers" element={<FindTeachers />} />
         <Route path="/teachers/:slug" element={<TeacherProfile />} />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <OnboardingWizard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
 

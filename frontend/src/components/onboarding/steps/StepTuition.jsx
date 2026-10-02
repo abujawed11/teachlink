@@ -1,0 +1,94 @@
+import FormField, { inputClass } from "../FormField";
+
+const MODE_FIELDS = [
+  ["onlineAvailable", "Online teaching"],
+  ["offlineAvailable", "Offline / in-person teaching"],
+  ["homeTuitionAvailable", "Home tuition (teacher visits student)"],
+  ["studentCanVisit", "Student can visit teacher"],
+  ["groupTuitionAvailable", "Group tuition"],
+  ["individualTuitionAvailable", "Individual (1-on-1) tuition"],
+  ["demoClassAvailable", "Free demo class available"],
+];
+
+function StepTuition({ values, onChange }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-slate-800">Tuition Preferences</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {MODE_FIELDS.map(([field, label]) => (
+          <label
+            key={field}
+            className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2"
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(values[field])}
+              onChange={(e) => onChange(field, e.target.checked)}
+              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      {values.homeTuitionAvailable && (
+        <FormField label="Teaching Radius (km)">
+          <input
+            type="number"
+            min={0}
+            max={500}
+            value={values.teachingRadiusKm ?? ""}
+            onChange={(e) =>
+              onChange(
+                "teachingRadiusKm",
+                e.target.value === "" ? null : Number(e.target.value)
+              )
+            }
+            className={inputClass}
+          />
+        </FormField>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Fee Min (per month)">
+          <input
+            type="number"
+            min={0}
+            value={values.feeMin ?? ""}
+            onChange={(e) =>
+              onChange("feeMin", e.target.value === "" ? null : Number(e.target.value))
+            }
+            className={inputClass}
+          />
+        </FormField>
+
+        <FormField label="Fee Max (per month)">
+          <input
+            type="number"
+            min={0}
+            value={values.feeMax ?? ""}
+            onChange={(e) =>
+              onChange("feeMax", e.target.value === "" ? null : Number(e.target.value))
+            }
+            className={inputClass}
+          />
+        </FormField>
+      </div>
+
+      <FormField label="Preferred Contact Method">
+        <select
+          value={values.contactPreference || "PLATFORM_ONLY"}
+          onChange={(e) => onChange("contactPreference", e.target.value)}
+          className={inputClass}
+        >
+          <option value="PLATFORM_ONLY">Platform contact form only (recommended)</option>
+          <option value="PHONE">Show my phone number</option>
+          <option value="WHATSAPP">Show my WhatsApp number</option>
+        </select>
+      </FormField>
+    </div>
+  );
+}
+
+export default StepTuition;

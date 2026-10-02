@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–3 are done (project skeleton, DB foundation, authentication incl. login/register modal, teacher profile backend CRUD + publish rule). Phase 4 onward is still TODO. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–4 are done (project skeleton, DB foundation, authentication incl. login/register modal, teacher profile backend CRUD + publish rule, scalar-field onboarding wizard). Phase 5 onward is still TODO. This file is the source of truth for build order.
 
 ---
 
@@ -402,10 +402,12 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Testing checklist:** ownership enforced implicitly (profile looked up by `req.user.sub`, never a client-supplied id); non-teacher role gets 403 on `/api/teachers/me`; publish blocked with a clear combined error message until required fields present; public GET excludes private fields (`pincode`, `profileViews`, raw ids) and 404s for unpublished/suspended/unknown slugs. All verified via curl.
 - **Definition of Done:** a teacher can fill out and publish a profile with scalar fields; profile is fetchable by slug.
 
-### Phase 4 — Teacher Onboarding Frontend
-- **Objective:** Multi-step onboarding UI matching §7.
-- **Frontend:** `pages/onboarding/Step1..Step8`, a stepper component, wired to Phase 3 endpoints; save-as-draft on every step; review + publish screen.
-- **Testing checklist:** can navigate forward/back without losing data; refresh resumes at saved state; publish button disabled until required fields complete.
+### Phase 4 — Teacher Onboarding Frontend ✅ DONE (scalar fields only)
+- **Objective:** Multi-step onboarding UI matching §7, scoped to the scalar `TeacherProfile` fields that exist as of Phase 3 (subjects/grades/boards/availability step will be added once Phase 5 lands those tables).
+- **Frontend built:** `api/teacherApi.js` (get/update/publish/unpublish); `components/onboarding/Stepper.jsx`, `FormField.jsx`; five steps — `StepBasicInfo`, `StepProfessional`, `StepTuition`, `StepLocation`, `StepReview` — assembled in `pages/onboarding/OnboardingWizard.jsx`; `components/common/ProtectedRoute.jsx` (auth + role guard) protecting the new `/onboarding` route; a "My Profile" nav link shown only to `TEACHER`-role users.
+- **Save-as-draft behavior:** each step's fields are PATCHed to `/api/teachers/me` on "Save & Continue" (not on every keystroke), so partial progress is persisted to the DB immediately and a refresh resumes with whatever was last saved — not purely local/unsaved state.
+- **Publish:** final step calls `POST /api/teachers/me/publish`; the existing Phase 3 server-side rule (city + a teaching mode + headline/bio) is the actual gate — the wizard surfaces the server's error message rather than re-implementing the rule client-side, so the two can't drift out of sync.
+- **Testing checklist:** `npm run build` passes clean; manual browser walkthrough still to be done by the user (register as teacher → nav shows "My Profile" → step through all 5 steps → publish → view public profile link).
 - **Definition of Done:** a teacher can go from registration to a published scalar-field profile end-to-end in the UI.
 
 ### Phase 5 — Relational Data (Subjects/Grades/Boards/Languages + sub-resources)
@@ -537,7 +539,7 @@ MVP is complete when:
 - [x] Phase 1 — Database foundation (User roles, TeacherProfile scalars, lookup tables, seed)
 - [x] Phase 2 — Authentication (register/login/logout/me, cookie-based JWT, login/register modal, username field)
 - [x] Phase 3 — Teacher profile backend (scalar CRUD + publish rule)
-- [ ] Phase 4 — Teacher onboarding frontend (multi-step UI)
+- [x] Phase 4 — Teacher onboarding frontend (multi-step UI, scalar fields)
 - [ ] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
 - [ ] Phase 6 — Public teacher profile (full, privacy-correct)
 - [ ] Phase 7 — Teacher search & discovery
