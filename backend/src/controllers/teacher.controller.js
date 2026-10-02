@@ -46,9 +46,85 @@ const uploadPhoto = asyncHandler(async (req, res) => {
   res.json({ profile });
 });
 
+const setSubjects = asyncHandler(async (req, res) => {
+  const profile = await teacherService.setSubjects(req.user.sub, req.body.ids);
+  res.json({ profile });
+});
+
+const setGrades = asyncHandler(async (req, res) => {
+  const profile = await teacherService.setGrades(req.user.sub, req.body.ids);
+  res.json({ profile });
+});
+
+const setBoards = asyncHandler(async (req, res) => {
+  const profile = await teacherService.setBoards(req.user.sub, req.body.ids);
+  res.json({ profile });
+});
+
+const setLanguages = asyncHandler(async (req, res) => {
+  const profile = await teacherService.setLanguages(req.user.sub, req.body.ids);
+  res.json({ profile });
+});
+
+const addQualification = asyncHandler(async (req, res) => {
+  const profile = await teacherService.addQualification(req.user.sub, req.body);
+  res.status(201).json({ profile });
+});
+
+const deleteQualification = asyncHandler(async (req, res) => {
+  const profile = await teacherService.deleteQualification(
+    req.user.sub,
+    Number(req.params.id)
+  );
+  res.json({ profile });
+});
+
+const addExperience = asyncHandler(async (req, res) => {
+  const profile = await teacherService.addExperience(req.user.sub, req.body);
+  res.status(201).json({ profile });
+});
+
+const deleteExperience = asyncHandler(async (req, res) => {
+  const profile = await teacherService.deleteExperience(
+    req.user.sub,
+    Number(req.params.id)
+  );
+  res.json({ profile });
+});
+
+const addAvailability = asyncHandler(async (req, res) => {
+  const profile = await teacherService.addAvailability(req.user.sub, req.body);
+  res.status(201).json({ profile });
+});
+
+const deleteAvailability = asyncHandler(async (req, res) => {
+  const profile = await teacherService.deleteAvailability(
+    req.user.sub,
+    Number(req.params.id)
+  );
+  res.json({ profile });
+});
+
 const getBySlug = asyncHandler(async (req, res) => {
   const profile = await teacherService.getPublicProfileBySlug(req.params.slug);
   res.json({ profile });
 });
 
-module.exports = { getMe, updateMe, publishMe, unpublishMe, uploadPhoto, getBySlug };
+module.exports = {
+  getMe,
+  updateMe,
+  publishMe,
+  unpublishMe,
+  uploadPhoto,
+  setSubjects,
+  setGrades,
+  setBoards,
+  setLanguages,
+  addQualification,
+  deleteQualification,
+  addExperience,
+  deleteExperience,
+  addAvailability,
+  deleteAvailability,
+  getBySlug,
+};

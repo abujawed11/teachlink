@@ -31,6 +31,22 @@ enum ContactPreference {
   WHATSAPP
 }
 
+enum QualificationType {
+  DEGREE
+  CERTIFICATION
+  OTHER
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
 model User {
   id              Int        @id @default(autoincrement())
   email           String     @unique
@@ -53,18 +69,18 @@ model TeacherProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   slug   String @unique
 
-  headline              String?
-  bio                   String? @db.Text
-  photoUrl              String?
-  gender                Gender?
-  experienceYears       Int?
-  qualificationSummary  String?
+  headline             String?
+  bio                  String? @db.Text
+  photoUrl             String?
+  gender               Gender?
+  experienceYears      Int?
+  qualificationSummary String?
 
-  country  String?
-  state    String?
-  city     String?
-  area     String?
-  pincode  String?
+  country String?
+  state   String?
+  city    String?
+  area    String?
+  pincode String?
 
   onlineAvailable            Boolean @default(false)
   offlineAvailable           Boolean @default(false)
@@ -87,6 +103,14 @@ model TeacherProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  subjects       TeacherSubject[]
+  grades         TeacherGrade[]
+  boards         TeacherBoard[]
+  languages      TeacherLanguage[]
+  qualifications TeacherQualification[]
+  experiences    TeacherExperience[]
+  availabilities TeacherAvailability[]
+
   @@index([city])
   @@index([isPublished])
 }
@@ -95,6 +119,8 @@ model Subject {
   id       Int     @id @default(autoincrement())
   name     String  @unique
   isActive Boolean @default(true)
+
+  teachers TeacherSubject[]
 }
 
 model Grade {
@@ -102,15 +128,94 @@ model Grade {
   name      String  @unique
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
+
+  teachers TeacherGrade[]
 }
 
 model Board {
   id       Int     @id @default(autoincrement())
   name     String  @unique
   isActive Boolean @default(true)
+
+  teachers TeacherBoard[]
 }
 
 model Language {
   id   Int    @id @default(autoincrement())
   name String @unique
+
+  teachers TeacherLanguage[]
+}
+
+model TeacherSubject {
+  teacherProfileId Int
+  subjectId        Int
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subject        Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([teacherProfileId, subjectId])
+}
+
+model TeacherGrade {
+  teacherProfileId Int
+  gradeId          Int
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  grade          Grade          @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@id([teacherProfileId, gradeId])
+}
+
+model TeacherBoard {
+  teacherProfileId Int
+  boardId          Int
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  board          Board          @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@id([teacherProfileId, boardId])
+}
+
+model TeacherLanguage {
+  teacherProfileId Int
+  languageId       Int
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  language       Language       @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@id([teacherProfileId, languageId])
+}
+
+model TeacherQualification {
+  id               Int               @id @default(autoincrement())
+  teacherProfileId Int
+  teacherProfile   TeacherProfile    @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  title            String
+  institution      String?
+  yearCompleted    Int?
+  type             QualificationType @default(DEGREE)
+  createdAt        DateTime          @default(now())
+}
+
+model TeacherExperience {
+  id               Int            @id @default(autoincrement())
+  teacherProfileId Int
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  institutionName  String
+  role             String?
+  startDate        DateTime?
+  endDate          DateTime?
+  description      String?        @db.Text
+  createdAt        DateTime       @default(now())
+}
+
+model TeacherAvailability {
+  id               Int            @id @default(autoincrement())
+  teacherProfileId Int
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  dayOfWeek        DayOfWeek
+  startTime        String
+  endTime          String
+  createdAt        DateTime       @default(now())
 }

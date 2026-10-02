@@ -2,26 +2,46 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
+  getBoards,
+  getGrades,
+  getLanguages,
+  getSubjects,
+} from "../../api/lookupApi";
+import {
   getMyProfile,
   publishMyProfile,
+  setMyBoards,
+  setMyGrades,
+  setMyLanguages,
+  setMySubjects,
   updateMyProfile,
 } from "../../api/teacherApi";
 import ProfilePreviewCard from "../../components/onboarding/ProfilePreviewCard";
 import ProfileStrengthBar from "../../components/onboarding/ProfileStrengthBar";
 import Stepper from "../../components/onboarding/Stepper";
+import StepAvailability from "../../components/onboarding/steps/StepAvailability";
 import StepBasicInfo from "../../components/onboarding/steps/StepBasicInfo";
 import StepLocation from "../../components/onboarding/steps/StepLocation";
 import StepProfessional from "../../components/onboarding/steps/StepProfessional";
 import StepReview from "../../components/onboarding/steps/StepReview";
+import StepSubjects from "../../components/onboarding/steps/StepSubjects";
 import StepTuition from "../../components/onboarding/steps/StepTuition";
 import { computeProfileStrength, validateStep } from "../../components/onboarding/validation";
 
-const STEP_LABELS = ["Basic Info", "Professional", "Tuition", "Location", "Review"];
+const STEP_LABELS = [
+  "Basic Info",
+  "Professional",
+  "Subjects",
+  "Tuition",
+  "Location",
+  "Availability",
+  "Review",
+];
 
-const STEP_FIELDS = [
-  ["headline", "bio", "photoUrl", "gender"],
-  ["qualificationSummary", "experienceYears"],
-  [
+const STEP_SCALAR_FIELDS = {
+  1: ["headline", "bio", "photoUrl", "gender"],
+  2: ["qualificationSummary", "experienceYears"],
+  4: [
     "onlineAvailable",
     "offlineAvailable",
     "homeTuitionAvailable",
@@ -34,12 +54,13 @@ const STEP_FIELDS = [
     "feeMax",
     "contactPreference",
   ],
-  ["country", "state", "city", "area", "pincode"],
-];
+  5: ["country", "state", "city", "area", "pincode"],
+};
 
 function OnboardingWizard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [lookups, setLookups] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [stepErrors, setStepErrors] = useState({});
   const [loading, setLoading] = useState(true);
@@ -48,8 +69,11 @@ function OnboardingWizard() {
   const [publishedMessage, setPublishedMessage] = useState("");
 
   useEffect(() => {
-    getMyProfile()
-      .then(setProfile)
+    Promise.all([getMyProfile(), getSubjects(), getGrades(), getBoards(), getLanguages()])
+      .then(([myProfile, subjects, grades, boards, languages]) => {
+        setProfile(myProfile);
+        setLookups({ subjects, grades, boards, languages });
+      })
       .catch(() => setError("Could not load your profile"))
       .finally(() => setLoading(false));
   }, []);
@@ -58,18 +82,11 @@ function OnboardingWizard() {
 
   const TEACHING_MODE_FIELDS = ["onlineAvailable", "offlineAvailable", "homeTuitionAvailable"];
 
-  const handleChange = (field, value) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-
-    const fieldsToClear = [field];
-    if (TEACHING_MODE_FIELDS.includes(field) && value) {
-      fieldsToClear.push("teachingModes");
-    }
-
+  const clearErrors = (keys) => {
     setStepErrors((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const key of fieldsToClear) {
+      for (const key of keys) {
         if (key in next) {
           delete next[key];
           changed = true;
@@ -79,11 +96,36 @@ function OnboardingWizard() {
     });
   };
 
+  const handleChange = (field, value) => {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+    const toClear = [field];
+    if (TEACHING_MODE_FIELDS.includes(field) && value) toClear.push("teachingModes");
+    clearErrors(toClear);
+  };
+
+  const handleToggleRelation = (field, item) => {
+    setProfile((prev) => {
+      const list = prev[field];
+      const exists = list.some((i) => i.id === item.id);
+      const next = exists ? list.filter((i) => i.id !== item.id) : [...list, item];
+      return { ...prev, [field]: next };
+    });
+    clearErrors([field]);
+  };
+
   const pickFields = (fields) =>
     fields.reduce((acc, field) => {
       acc[field] = profile[field];
       return acc;
     }, {});
+
+  const saveRelations = async () => {
+    await setMySubjects(profile.subjects.map((s) => s.id));
+    await setMyGrades(profile.grades.map((g) => g.id));
+    await setMyBoards(profile.boards.map((b) => b.id));
+    const updated = await setMyLanguages(profile.languages.map((l) => l.id));
+    return updated;
+  };
 
   const handleNext = async () => {
     setError("");
@@ -95,19 +137,21 @@ function OnboardingWizard() {
     }
     setStepErrors({});
 
-    const fields = STEP_FIELDS[currentStep - 1];
-    if (fields) {
-      setSaving(true);
-      try {
-        const updated = await updateMyProfile(pickFields(fields));
-        setProfile(updated);
-      } catch (err) {
-        setError(err.response?.data?.error?.message || "Could not save this step");
-        setSaving(false);
-        return;
+    setSaving(true);
+    try {
+      let updated = profile;
+      if (currentStep === 3) {
+        updated = await saveRelations();
+      } else if (STEP_SCALAR_FIELDS[currentStep]) {
+        updated = await updateMyProfile(pickFields(STEP_SCALAR_FIELDS[currentStep]));
       }
+      setProfile(updated);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Could not save this step");
       setSaving(false);
+      return;
     }
+    setSaving(false);
     setCurrentStep((step) => Math.min(step + 1, STEP_LABELS.length));
   };
 
@@ -134,7 +178,7 @@ function OnboardingWizard() {
     return <div className="p-8 text-slate-500">Loading...</div>;
   }
 
-  if (!profile) {
+  if (!profile || !lookups) {
     return <div className="p-8 text-red-600">{error || "Profile not found"}</div>;
   }
 
@@ -175,15 +219,30 @@ function OnboardingWizard() {
               <StepBasicInfo values={profile} onChange={handleChange} errors={stepErrors} />
             )}
             {currentStep === 2 && (
-              <StepProfessional values={profile} onChange={handleChange} />
+              <StepProfessional
+                values={profile}
+                onChange={handleChange}
+                onProfileUpdate={setProfile}
+              />
             )}
             {currentStep === 3 && (
-              <StepTuition values={profile} onChange={handleChange} errors={stepErrors} />
+              <StepSubjects
+                values={profile}
+                onToggle={handleToggleRelation}
+                lookups={lookups}
+                errors={stepErrors}
+              />
             )}
             {currentStep === 4 && (
+              <StepTuition values={profile} onChange={handleChange} errors={stepErrors} />
+            )}
+            {currentStep === 5 && (
               <StepLocation values={profile} onChange={handleChange} errors={stepErrors} />
             )}
-            {currentStep === 5 && <StepReview values={profile} />}
+            {currentStep === 6 && (
+              <StepAvailability values={profile} onProfileUpdate={setProfile} />
+            )}
+            {currentStep === 7 && <StepReview values={profile} />}
           </div>
 
           <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">

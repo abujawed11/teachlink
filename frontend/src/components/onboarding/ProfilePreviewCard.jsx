@@ -55,6 +55,32 @@ function ProfilePreviewCard({ values, compact }) {
         )}
       </div>
 
+      {values.subjects?.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {values.subjects.map((s) => (
+            <span
+              key={s.id}
+              className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full"
+            >
+              {s.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {values.grades?.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {values.grades.map((g) => (
+            <span
+              key={g.id}
+              className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
+            >
+              {g.name}
+            </span>
+          ))}
+        </div>
+      )}
+
       {modes.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {modes.map((mode) => (

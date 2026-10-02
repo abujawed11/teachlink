@@ -38,4 +38,38 @@ const updateProfileSchema = z
     { message: "feeMin cannot be greater than feeMax", path: ["feeMin"] }
   );
 
-module.exports = { updateProfileSchema };
+const DAYS_OF_WEEK = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const QUALIFICATION_TYPES = ["DEGREE", "CERTIFICATION", "OTHER"];
+
+const idListSchema = z.object({
+  ids: z.array(z.number().int().positive()).max(50),
+});
+
+const qualificationSchema = z.object({
+  title: z.string().min(1, "Title is required").max(150),
+  institution: z.string().max(150).nullable().optional(),
+  yearCompleted: z.number().int().min(1950).max(2100).nullable().optional(),
+  type: z.enum(QUALIFICATION_TYPES).optional(),
+});
+
+const experienceSchema = z.object({
+  institutionName: z.string().min(1, "Institution name is required").max(150),
+  role: z.string().max(150).nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+});
+
+const availabilitySchema = z.object({
+  dayOfWeek: z.enum(DAYS_OF_WEEK),
+  startTime: z.string().min(1).max(10),
+  endTime: z.string().min(1).max(10),
+});
+
+module.exports = {
+  updateProfileSchema,
+  idListSchema,
+  qualificationSchema,
+  experienceSchema,
+  availabilitySchema,
+};

@@ -8,6 +8,15 @@ function validateStep(step, profile) {
   }
 
   if (step === 3) {
+    if (!profile.subjects || profile.subjects.length === 0) {
+      errors.subjects = "Select at least one subject you teach";
+    }
+    if (!profile.grades || profile.grades.length === 0) {
+      errors.grades = "Select at least one class/grade you teach";
+    }
+  }
+
+  if (step === 4) {
     const hasMode =
       profile.onlineAvailable || profile.offlineAvailable || profile.homeTuitionAvailable;
     if (!hasMode) {
@@ -22,7 +31,7 @@ function validateStep(step, profile) {
     }
   }
 
-  if (step === 4) {
+  if (step === 5) {
     if (!profile.city || !profile.city.trim()) {
       errors.city = "City is required so visitors can find you";
     }
@@ -37,6 +46,8 @@ const STRENGTH_CHECKS = [
   (p) => Boolean(p.photoUrl),
   (p) => Boolean(p.qualificationSummary),
   (p) => p.experienceYears != null,
+  (p) => Boolean(p.subjects?.length),
+  (p) => Boolean(p.grades?.length),
   (p) => Boolean(p.city),
   (p) => Boolean(p.area),
   (p) => p.feeMin != null,
