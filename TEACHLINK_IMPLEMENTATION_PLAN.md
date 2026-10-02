@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–10 are all done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 11 (hardening) and Phase 12 (deployment) are still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–10 are done and Phase 11 (hardening/testing) is partly done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 11 still has the items listed under "Remaining" in its section, and Phase 12 (deployment) is TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
 
 ---
 
@@ -477,14 +477,34 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Known gaps:** no audit log of who suspended/hid whom or why (no reason field either); no reports/flagging workflow or bulk actions (still §19); suspended users' existing access tokens stay valid for up to 15 minutes for endpoints that don't re-check status (login, refresh, `/me`, contact and admin routes do); admin password can't be changed in-app (no Account Settings yet).
 - **Definition of Done:** a seeded admin account can moderate users/teachers and manage lookup lists. ✅
 
-### Phase 11 — Security, Testing, Optimization
+### Phase 11 — Security, Testing, Optimization 🟡 IN PROGRESS (backend hardening + backend tests done)
 - **Objective:** Harden before launch.
-- **Backend:** tighten rate limits on auth, review Helmet/CORS config for prod domains, add indexes if query plans need them, add `sharp` image resizing, write integration tests for auth/profile/search.
-- **Secrets & credentials (found during Phase 10 setup):** `backend/.env` still has the placeholder `JWT_SECRET=change_this_secret` / `JWT_REFRESH_SECRET=change_this_refresh_secret` — anyone who knows them can forge a login token, including an ADMIN one. Replace both with long random values (and different from each other), and use separate values per environment. Use a strong admin password (the dev `admin123` passes the 8-character minimum but is not acceptable for a public deployment); consider removing `ADMIN_PASSWORD` from `.env` after the admin is seeded. Consider failing startup in production if the JWT secrets are the placeholder values.
-- **Suspension gap:** a suspended user's existing access token stays valid for up to 15 minutes on endpoints that don't re-check status — decide whether `requireAuth` should check status (costs one query per request) or keep the short TTL.
-- **Frontend:** basic accessibility pass, loading/error states everywhere, form validation polish.
-- **Testing checklist:** run full manual QA pass (§20 checklist), fix any privacy leaks found via direct API inspection.
-- **Definition of Done:** no known security/privacy gaps against §15/§16; core flows covered by automated tests.
+
+**Done — backend hardening**
+- **Startup configuration checks (`config/env.js`):** in production the server **refuses to start** if `JWT_SECRET` / `JWT_REFRESH_SECRET` are placeholders, shorter than 32 characters or identical to each other, or if `FRONTEND_URL` is missing. In development it only prints a `[security]` warning (with the command to generate a secret); in tests it is silent. New `TRUST_PROXY` setting (number of proxy hops, or `true`/`false`) so rate limiting sees real visitor IPs behind a host's proxy. `FRONTEND_URL` may now list several comma-separated origins. `backend/.env.example` and `frontend/.env.example` document every variable.
+- **CORS:** only the configured frontend origin(s) get credentialed access; any other origin gets no CORS headers (verified for both normal requests and preflights).
+- **Rate limiting (`middleware/rateLimiters.js`), all returning the standard JSON error `{ error: { message, code: "RATE_LIMITED" } }` with a `Retry-After` header:** global 600 requests / 15 min per IP (raised from 100, which normal browsing could trip); register and register-teacher 10 / 15 min; **login 10 *failed* attempts / 15 min** (successful logins don't count, so users are never locked out for logging in correctly; once tripped, even the correct password is refused until the window passes); **password change 5 failed attempts / 15 min** (stops guessing the current password through a stolen session); refresh 60 / 15 min. Static `/uploads` is now served *before* the limiter so photo thumbnails don't use up a visitor's allowance. Limiting can be switched off with `DISABLE_RATE_LIMIT=1` (tests only).
+- **Error handling:** malformed JSON now returns **400** and an oversized body (limit 100 kb) **413**, both as JSON — previously both were 500s that dumped stack traces to the log. Unknown `/api/*` routes return a JSON 404 instead of an HTML page. No stack traces or framework details in responses.
+- **Photo uploads (`middleware/upload.js`, uses `sharp`):** every photo is decoded and **re-encoded as WebP, which removes all EXIF/GPS metadata** (phone photos otherwise publish where they were taken), capped at 800×800 without enlarging, EXIF rotation applied first so photos aren't turned sideways. The file's real contents are validated rather than the client's `Content-Type` (a text/PHP file or a GIF labelled `image/png` is rejected), a 40-megapixel input limit blocks "decompression bomb" files, the 5 MB limit gives a clear message, and filenames are generated server-side. Uploads are held in memory until validated, so a rejected upload leaves nothing on disk. `UPLOAD_DIR` is overridable (used by tests).
+- **Bugs found by the new tests and fixed:**
+  - `PUT /api/teachers/me/subjects|grades|boards|languages` with an id that doesn't exist returned 200 **and silently wiped the teacher's existing selection** (`createMany({ skipDuplicates })` swallows foreign-key failures after the delete had already run). Ids are now validated first (400 `One or more selected … are not available`); a deactivated item can't be newly chosen, but a teacher who already has one keeps it so saving the form doesn't fail. The four near-identical functions were folded into one `replaceSelection` helper.
+  - Blank `?mode=` / `?sort=` on the search endpoint returned 400 although other blank filters were ignored; now treated as "not provided".
+
+**Done — automated tests (backend)**
+- **Tooling:** Vitest + Supertest (`npm test`, `npm run test:watch` in `backend/`). Tests run against their **own database, `teachlink_test`**, derived from `DATABASE_URL`; the config and global setup refuse to run unless the database name ends in `_test`. Global setup runs `prisma migrate deploy` (Prisma creates the database if missing — the MySQL user needs permission to) and the seed (lookups only, no admin). Each test file works under a unique tag and deletes its own rows; uploads go to a temp folder. Verified isolated: the development database and `uploads/` were untouched after full runs.
+- **Coverage — 181 tests in 10 files, ~19 s, passed on two consecutive full runs:** `auth` (registration incl. no role injection, duplicate email/username, validation, login, no account enumeration, suspended accounts, `/me`, logout, token refresh), `teachers` (access control, ownership, profile validation, every publish rule, public page privacy and 404s, `isOwner`, relation replace/dedupe/validation, deactivated items, qualification/experience/availability incl. cross-teacher delete attempts), `search` (visibility rules, every filter, ANY-within/ALL-across semantics, sorting, stable pagination, validation), `contact` (requests, daily limit, inbox, read marking, sent list, number unlock and its daily cap), `admin` (access control incl. forged and demoted admins, user/teacher moderation and every place a suspended or hidden profile must disappear, lookup lifecycle), `users` (account settings, password change), `upload` (EXIF removal, rotation, sizing, rejection of fake/oversized/bomb files, old-photo cleanup), `hardening` (error handling, security headers, CORS, startup configuration checks run in fresh processes, cookie flags) and `rateLimits` (every limiter, in its own file because the counters are per-process).
+- **Windows note:** if `vitest` fails with "Cannot find native binding" (npm's optional-dependency bug), run `npm install -D --no-save @rolldown/binding-win32-x64-msvc@<same version as node_modules/rolldown>` in `backend/`.
+
+**Remaining (next session)**
+- **Do before any deployment (manual):** replace the placeholder `JWT_SECRET` / `JWT_REFRESH_SECRET` in `backend/.env` with generated secrets (the server now warns on every start until you do) and use a strong admin password. Set `TRUST_PROXY` if deploying behind a proxy.
+- **Existing photos are not re-encoded:** only uploads made after this change have EXIF/GPS stripped. Photos uploaded earlier (e.g. the dev test photo) still carry their metadata. A one-off script that re-encodes everything in `uploads/` — and updates the stored URLs — is needed before real users exist (or simply have affected teachers re-upload).
+- **Frontend tests (not started):** Vitest (+ React Testing Library) for the session-refresh interceptor (`api/refresh.js`), `validateStep` / `computeProfileStrength`, and key components (FilterBar, onboarding steps, TeacherCard). Backend tests for the refresh interceptor's counterpart already exist; the interceptor itself was only verified with a one-off script.
+- **Accessibility and UX pass (not started):** labels/aria on forms and modals (focus trapping, focus return), keyboard use of the tab bars, colour contrast, loading/error/empty states on every page.
+- **Manual QA in a browser (not done):** the UI for Phases 8–11 has been verified through the API and compiles/lints, but the screens (dashboard and edit modals, contact flow, admin panel, Settings, the logged-out prompt, session refresh after 15 minutes) have not been walked through. Do the §20 manual checklist and fix what turns up.
+- **Decisions still open:** whether `requireAuth` should check account status on every request (a suspended user's already-issued access token works for up to 15 minutes on endpoints that don't re-check; login, refresh, `/me`, contact and admin routes do); per-account (not only per-IP) login throttling; whether a password change should invalidate other sessions (tokens are stateless today).
+- **Performance:** review query plans / add indexes once there is realistic data volume (search filters on city, mode flags, fee and experience); no premature changes made.
+- **CI:** run `npm test` automatically on every push (not set up).
+- **Definition of Done:** no known security/privacy gaps against §15/§16; core flows covered by automated tests. *Backend: met except the manual items above; frontend: not yet.*
 
 ### Phase 12 — Production Deployment
 - **Objective:** Ship it.
@@ -526,6 +546,7 @@ MVP is complete when:
 - **Database testing:** a separate `teachlink_test` database + `prisma migrate deploy` in a pretest script; reset/seed between runs.
 - **Frontend testing:** React Testing Library for key components (FilterBar, onboarding steps, TeacherCard) — keep it light for MVP, prioritize backend coverage.
 - **Manual testing:** a written checklist per phase's "Testing checklist" above, run before merging each phase.
+- **Status:** the backend half of this strategy is implemented — Vitest + Supertest against an isolated `teachlink_test` database, `npm test` in `backend/` (see Phase 11). Frontend tests are still TODO.
 - Add packages only as needed: `vitest`, `supertest`, `@testing-library/react` when Phase 11 starts — don't install test tooling speculatively in Phase 0.
 
 ## 21. Deployment Plan
@@ -572,7 +593,7 @@ MVP is complete when:
 - [x] Phase 8 — Teacher dashboard & profile management (incl. Account Settings)
 - [x] Phase 9 — Contact flow (login required; in-app inbox, no email yet)
 - [x] Phase 10 — Admin basics (users, teachers, lookups; hide/suspend/verify)
-- [ ] Phase 11 — Security, testing, optimization
+- [~] Phase 11 — Security, testing, optimization (backend hardening + 181 backend tests done; frontend tests, accessibility, manual QA and secrets still to do)
 - [ ] Phase 12 — Production deployment
 
 ## 25. Important Decisions / Questions
@@ -595,6 +616,7 @@ Everything below was added or done differently from what the sections above orig
 - Home page content (hero quick-search, newest teachers, how-it-works, teacher CTA) and a `register-teacher` entry point that pre-ticks the teacher checkbox in the sign-up modal (`defaultAsTeacher` prop on `RegisterForm`).
 - `components/onboarding/stepSave.js` — shared "save this step" logic used by both the wizard and the edit modal.
 - Collapsible "More filters" panel on Find Teachers.
+- Phase 11 hardening: production refuses insecure JWT secrets, new per-route rate limiters with JSON errors, JSON 400/413/404 error handling, sharp-based photo pipeline (re-encode to WebP, strip EXIF/GPS, validate real contents), multi-origin CORS, `TRUST_PROXY`, `.env.example` files — and a 181-test Vitest/Supertest suite on an isolated test database. Two bugs found by the tests are fixed (silent wipe of a teacher's selection on an unknown id; blank `mode`/`sort` rejected).
 - Session refresh interceptor (above) — fixes users being logged out after 15 minutes.
 - Account Settings page and `PATCH /api/users/me`, `POST /api/users/me/password`; the contact modal pre-fills the account phone.
 - Public profile now carries `isOwner` (new `optionalAuth` middleware identifies a logged-in viewer on the otherwise public route; an invalid cookie is just anonymous) so the "Contact teacher" button is hidden on your own page.
@@ -614,13 +636,15 @@ Everything below was added or done differently from what the sections above orig
 **Operational notes**
 - Fresh database: `npx prisma migrate dev`, then `npm run prisma:seed` (lookups are empty otherwise). To also create an admin, set `ADMIN_USERNAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `backend/.env` first.
 - `backend/.env` holds real credentials and placeholder secrets — never commit it (it is gitignored) and replace the JWT secrets before any shared or production deployment (see Phase 11).
+- Run the backend tests with `npm test` in `backend/`; they need `DATABASE_URL` in `.env` and a MySQL user allowed to create the `teachlink_test` database. After pulling these changes run `npm install` (new dependencies: `sharp`; dev: `vitest`, `supertest`) and restart the backend.
 - On Windows, stop the running backend before `npx prisma generate`/`migrate dev`, or Prisma can't replace its locked engine file (`EPERM`).
 - The shadow database used by `migrate dev` needs broad MySQL privileges for the dev user (`GRANT ALL ON *.*`), including `INDEX`.
 
 **Still open (carry forward)**
 - Edit (not just add/delete) for qualifications, experience and availability.
 - Fee-sort null ordering; whether to make a photo mandatory before publish (§25 #5).
-- Replace placeholder JWT secrets and the dev admin password before deployment (Phase 11).
+- Replace placeholder JWT secrets and the dev admin password before deployment (the server now warns on every start, and refuses to start in production).
+- Re-encode photos uploaded before the sharp pipeline (they still carry EXIF/GPS metadata).
 - Admin audit log (who suspended/hid what, and why); reports/flagging and bulk actions.
-- Phases 11–12 unchanged: security/testing, deployment.
+- Phase 11 remainder (frontend tests, accessibility, manual QA, open decisions) and Phase 12 (deployment).
 - Email notifications for new contact requests.

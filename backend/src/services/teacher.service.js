@@ -98,53 +98,71 @@ async function unpublishOwnProfile(userId) {
   return getOwnProfile(userId);
 }
 
-async function setSubjects(userId, subjectIds) {
+// Replaces a teacher's whole selection for one lookup (subjects, grades, boards or languages).
+//
+// The ids are validated BEFORE anything is deleted: createMany({ skipDuplicates }) quietly swallows
+// foreign-key failures, so an unknown id would otherwise wipe the existing selection and insert
+// nothing, with no error. Deactivated items can't be newly chosen, but a teacher who already has
+// one keeps it (their profile still shows it, so the form sends it back on every save).
+async function replaceSelection(userId, ids, { model, joinModel, field, label }) {
   const profile = await getRawOwnProfile(userId);
+  const uniqueIds = [...new Set(ids)];
+
+  const held = await prisma[joinModel].findMany({
+    where: { teacherProfileId: profile.id },
+    select: { [field]: true },
+  });
+  const heldIds = new Set(held.map((row) => row[field]));
+
+  const found = await prisma[model].findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, isActive: true },
+  });
+  const usable = found.filter((item) => item.isActive || heldIds.has(item.id));
+  if (usable.length !== uniqueIds.length) {
+    throw new AppError(`One or more selected ${label} are not available`, 400, "VALIDATION_ERROR");
+  }
+
   await prisma.$transaction([
-    prisma.teacherSubject.deleteMany({ where: { teacherProfileId: profile.id } }),
-    prisma.teacherSubject.createMany({
-      data: subjectIds.map((subjectId) => ({ teacherProfileId: profile.id, subjectId })),
-      skipDuplicates: true,
+    prisma[joinModel].deleteMany({ where: { teacherProfileId: profile.id } }),
+    prisma[joinModel].createMany({
+      data: uniqueIds.map((id) => ({ teacherProfileId: profile.id, [field]: id })),
     }),
   ]);
   return getOwnProfile(userId);
 }
 
-async function setGrades(userId, gradeIds) {
-  const profile = await getRawOwnProfile(userId);
-  await prisma.$transaction([
-    prisma.teacherGrade.deleteMany({ where: { teacherProfileId: profile.id } }),
-    prisma.teacherGrade.createMany({
-      data: gradeIds.map((gradeId) => ({ teacherProfileId: profile.id, gradeId })),
-      skipDuplicates: true,
-    }),
-  ]);
-  return getOwnProfile(userId);
-}
+const setSubjects = (userId, ids) =>
+  replaceSelection(userId, ids, {
+    model: "subject",
+    joinModel: "teacherSubject",
+    field: "subjectId",
+    label: "subjects",
+  });
 
-async function setBoards(userId, boardIds) {
-  const profile = await getRawOwnProfile(userId);
-  await prisma.$transaction([
-    prisma.teacherBoard.deleteMany({ where: { teacherProfileId: profile.id } }),
-    prisma.teacherBoard.createMany({
-      data: boardIds.map((boardId) => ({ teacherProfileId: profile.id, boardId })),
-      skipDuplicates: true,
-    }),
-  ]);
-  return getOwnProfile(userId);
-}
+const setGrades = (userId, ids) =>
+  replaceSelection(userId, ids, {
+    model: "grade",
+    joinModel: "teacherGrade",
+    field: "gradeId",
+    label: "classes",
+  });
 
-async function setLanguages(userId, languageIds) {
-  const profile = await getRawOwnProfile(userId);
-  await prisma.$transaction([
-    prisma.teacherLanguage.deleteMany({ where: { teacherProfileId: profile.id } }),
-    prisma.teacherLanguage.createMany({
-      data: languageIds.map((languageId) => ({ teacherProfileId: profile.id, languageId })),
-      skipDuplicates: true,
-    }),
-  ]);
-  return getOwnProfile(userId);
-}
+const setBoards = (userId, ids) =>
+  replaceSelection(userId, ids, {
+    model: "board",
+    joinModel: "teacherBoard",
+    field: "boardId",
+    label: "boards",
+  });
+
+const setLanguages = (userId, ids) =>
+  replaceSelection(userId, ids, {
+    model: "language",
+    joinModel: "teacherLanguage",
+    field: "languageId",
+    label: "languages",
+  });
 
 async function addQualification(userId, data) {
   const profile = await getRawOwnProfile(userId);

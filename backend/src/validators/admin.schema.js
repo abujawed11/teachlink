@@ -1,10 +1,9 @@
 const { z } = require("zod");
 
-const { text, optionalInt } = require("./search.schema");
+const { text, optionalInt, blankToUndefined } = require("./search.schema");
 
 // The admin UI sends "" for "All"; treat that the same as not filtering.
-const enumOrBlank = (values) =>
-  z.preprocess((value) => (value === "" ? undefined : value), z.enum(values).optional());
+const enumOrBlank = (values) => blankToUndefined(z.enum(values).optional());
 
 const pagination = {
   page: optionalInt(1, 10_000).transform((value) => value ?? 1),

@@ -2,23 +2,40 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
-const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 
 const env = require("./config/env");
 const routes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
+const { globalLimiter } = require("./middleware/rateLimiters");
 const { UPLOAD_DIR } = require("./middleware/upload");
 
 const app = express();
 
-app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
-app.use(helmet());
-app.use(cors({ origin: env.frontendUrl, credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+if (env.trustProxy !== undefined) {
+  app.set("trust proxy", env.trustProxy);
+}
 
+if (env.nodeEnv !== "test") {
+  app.use(morgan(env.isProduction ? "combined" : "dev"));
+}
+app.use(helmet());
+app.use(
+  cors({
+    // Only the configured frontend(s) may make credentialed requests.
+    origin: (origin, callback) => {
+      // Non-browser callers (curl, server-to-server) send no Origin header.
+      if (!origin || env.frontendUrls.includes(origin)) return callback(null, true);
+      callback(null, false);
+    },
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "100kb" }));
+app.use(cookieParser());
+
+// Photos are static files; they are served before the rate limiter so a page full of
+// thumbnails doesn't use up a visitor's request allowance.
 app.use(
   "/uploads",
   express.static(UPLOAD_DIR, {
@@ -28,7 +45,8 @@ app.use(
   })
 );
 
-app.use("/api", routes);
+app.use("/api", globalLimiter, routes);
+app.use("/api", errorHandler.notFound);
 
 app.use(errorHandler);
 

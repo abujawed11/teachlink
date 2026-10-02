@@ -32,18 +32,22 @@ const optionalInt = (min, max) =>
     .transform((value) => (value ? Number(value) : undefined))
     .pipe(z.number().int().min(min).max(max).optional());
 
+// An empty value ("?mode=") means "not provided", the same as it does for the free-text filters.
+const blankToUndefined = (schema) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema);
+
 const searchSchema = z.object({
   subject: nameList,
   grade: nameList,
   board: nameList,
   language: nameList,
   city: text,
-  mode: z.enum(MODES).optional(),
+  mode: blankToUndefined(z.enum(MODES).optional()),
   feeMax: optionalInt(0, 1_000_000),
   experienceMin: optionalInt(0, 80),
-  sort: z.enum(SORTS).default("newest"),
+  sort: blankToUndefined(z.enum(SORTS).default("newest")),
   page: optionalInt(1, 10_000).transform((value) => value ?? 1),
   pageSize: optionalInt(1, 50).transform((value) => value ?? 12),
 });
 
-module.exports = { searchSchema, text, optionalInt };
+module.exports = { searchSchema, text, optionalInt, blankToUndefined };
