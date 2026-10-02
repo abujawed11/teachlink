@@ -7,10 +7,109 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  TEACHER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ContactPreference {
+  PLATFORM_ONLY
+  PHONE
+  WHATSAPP
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
+  id              Int        @id @default(autoincrement())
+  email           String     @unique
+  password        String
+  name            String
+  phone           String?
+  role            UserRole   @default(USER)
+  status          UserStatus @default(ACTIVE)
+  isEmailVerified Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  teacherProfile TeacherProfile?
+}
+
+model TeacherProfile {
+  id     Int    @id @default(autoincrement())
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug   String @unique
+
+  headline              String?
+  bio                   String? @db.Text
+  photoUrl              String?
+  gender                Gender?
+  experienceYears       Int?
+  qualificationSummary  String?
+
+  country  String?
+  state    String?
+  city     String?
+  area     String?
+  pincode  String?
+
+  onlineAvailable            Boolean @default(false)
+  offlineAvailable           Boolean @default(false)
+  homeTuitionAvailable       Boolean @default(false)
+  studentCanVisit            Boolean @default(false)
+  groupTuitionAvailable      Boolean @default(false)
+  individualTuitionAvailable Boolean @default(false)
+  demoClassAvailable         Boolean @default(false)
+  teachingRadiusKm           Int?
+
+  feeMin Int?
+  feeMax Int?
+
+  contactPreference ContactPreference @default(PLATFORM_ONLY)
+
+  isPublished  Boolean @default(false)
+  isVerified   Boolean @default(false)
+  profileViews Int     @default(0)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([isPublished])
+}
+
+model Subject {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
+}
+
+model Grade {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+model Board {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
+}
+
+model Language {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 }
