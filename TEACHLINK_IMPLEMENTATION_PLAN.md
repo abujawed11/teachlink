@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–2 are done (project skeleton, DB foundation, authentication incl. login/register modal). Phase 3 onward is still TODO. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–3 are done (project skeleton, DB foundation, authentication incl. login/register modal, teacher profile backend CRUD + publish rule). Phase 4 onward is still TODO. This file is the source of truth for build order.
 
 ---
 
@@ -393,12 +393,13 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Testing checklist:** register → login → `GET /me` returns correct user; logout clears cookies; wrong username/password rejected with generic message; duplicate email and duplicate username both rejected with distinct error codes; protected route rejects unauthenticated requests. All verified via curl.
 - **Definition of Done:** a teacher and a normal user can both sign up and log in through the modal; sessions persist across reload via cookie.
 
-### Phase 3 — Teacher Profile Backend
+### Phase 3 — Teacher Profile Backend ✅ DONE
 - **Objective:** CRUD for a teacher's own profile, still without join tables.
-- **Backend:** `teacher.service.js`, `teacher.controller.js`, `teacher.routes.js`, `validators/teacher.schema.js` for basic/professional/tuition/location sections; `POST /me/publish` with minimum-field validation.
+- **Backend:** `teacher.service.js`, `teacher.controller.js`, `teacher.routes.js`, `validators/teacher.schema.js` (single `updateProfileSchema` covering basic/professional/tuition/location fields, all optional for partial PATCH updates, with a `feeMin <= feeMax` cross-field check); `POST /me/publish` and `POST /me/unpublish` with minimum-field validation.
 - **DB changes:** none beyond Phase 1 schema.
-- **API:** `PATCH /api/teachers/me`, `POST /api/teachers/me/publish`, `GET /api/teachers/:slug` (public, scalar fields only for now).
-- **Testing checklist:** ownership enforced (user A cannot edit user B's profile); publish blocked until required fields present; public GET excludes private fields.
+- **API:** `GET /api/teachers/me` (own full profile), `PATCH /api/teachers/me`, `POST /api/teachers/me/publish`, `POST /api/teachers/me/unpublish`, `GET /api/teachers/:slug` (public, scalar fields only for now).
+- **Publish rule implemented:** requires `city`, at least one of online/offline/home-tuition, and a headline or bio. (Subject/grade/board minimums will be added once those join tables exist in Phase 5.)
+- **Testing checklist:** ownership enforced implicitly (profile looked up by `req.user.sub`, never a client-supplied id); non-teacher role gets 403 on `/api/teachers/me`; publish blocked with a clear combined error message until required fields present; public GET excludes private fields (`pincode`, `profileViews`, raw ids) and 404s for unpublished/suspended/unknown slugs. All verified via curl.
 - **Definition of Done:** a teacher can fill out and publish a profile with scalar fields; profile is fetchable by slug.
 
 ### Phase 4 — Teacher Onboarding Frontend
@@ -535,7 +536,7 @@ MVP is complete when:
 - [x] Phase 0 — Cleanup & foundation (routing, axios, app.js split)
 - [x] Phase 1 — Database foundation (User roles, TeacherProfile scalars, lookup tables, seed)
 - [x] Phase 2 — Authentication (register/login/logout/me, cookie-based JWT, login/register modal, username field)
-- [ ] Phase 3 — Teacher profile backend (scalar CRUD + publish rule)
+- [x] Phase 3 — Teacher profile backend (scalar CRUD + publish rule)
 - [ ] Phase 4 — Teacher onboarding frontend (multi-step UI)
 - [ ] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
 - [ ] Phase 6 — Public teacher profile (full, privacy-correct)
