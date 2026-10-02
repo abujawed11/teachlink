@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Inbox, Mail, Phone } from "lucide-react";
 
 import { getReceivedRequests, getSentRequests, markRequestRead } from "../api/contactApi";
 import { useAuth } from "../hooks/useAuth";
@@ -9,8 +10,9 @@ const formatDate = (value) =>
 
 function EmptyState({ children }) {
   return (
-    <div className="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-500">
-      {children}
+    <div className="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-500 space-y-2">
+      <Inbox className="h-8 w-8 mx-auto text-slate-300" />
+      <p>{children}</p>
     </div>
   );
 }
@@ -45,16 +47,18 @@ function ReceivedList({ requests, onMarkRead }) {
             <div className="flex flex-wrap gap-2 text-sm">
               <a
                 href={`mailto:${request.sender.email}`}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-lg"
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-lg"
               >
-                ✉️ {request.sender.email}
+                <Mail className="h-3.5 w-3.5" />
+                {request.sender.email}
               </a>
               {request.phone && (
                 <a
                   href={`tel:${request.phone.replace(/[^\d+]/g, "")}`}
-                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg"
+                  className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg"
                 >
-                  📞 {request.phone}
+                  <Phone className="h-3.5 w-3.5" />
+                  {request.phone}
                 </a>
               )}
             </div>

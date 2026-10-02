@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2, X } from "lucide-react";
 
 import { sendContactRequest } from "../../api/contactApi";
 import { useAuth } from "../../hooks/useAuth";
@@ -73,15 +74,15 @@ function ContactModal({ slug, teacherName, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-slate-400 hover:text-slate-600 text-xl leading-none"
+            className="text-slate-400 hover:text-slate-600 transition-colors"
           >
-            ×
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {sent ? (
-          <div className="px-6 py-10 text-center space-y-3">
-            <div className="text-4xl">✅</div>
+          <div className="px-6 py-10 text-center space-y-3 animate-fade-in-up">
+            <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
             <h3 className="text-lg font-semibold text-slate-800">Request sent!</h3>
             <p className="text-sm text-slate-500">
               {teacherName} will see your message and can reach you using your account email

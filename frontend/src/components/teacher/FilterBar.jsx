@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 
 const MODES = [
   ["online", "Online"],
@@ -109,13 +110,16 @@ function FilterBar({ filters, lookups, onChange, onClear, activeCount }) {
           aria-expanded={expanded}
           className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
         >
+          <SlidersHorizontal className="h-4 w-4" />
           More filters
           {secondaryActive > 0 && (
             <span className="bg-indigo-600 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
               {secondaryActive}
             </span>
           )}
-          <span className={`text-xs transition-transform ${expanded ? "rotate-180" : ""}`}>▾</span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
         </button>
       </div>
 
@@ -167,7 +171,12 @@ function FilterBar({ filters, lookups, onChange, onClear, activeCount }) {
 
       {activeCount > 0 && (
         <div className="mt-3 text-right">
-          <button type="button" onClick={onClear} className="text-sm text-indigo-600 hover:underline">
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline"
+          >
+            <X className="h-3.5 w-3.5" />
             Clear all filters ({activeCount})
           </button>
         </div>

@@ -1,4 +1,14 @@
 import { useState } from "react";
+import {
+  BadgeCheck,
+  GraduationCap,
+  IndianRupee,
+  Lock,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
 
 const DAY_ORDER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_LABELS = {
@@ -147,8 +157,9 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-slate-900">{name}</h1>
             {profile.isVerified && (
-              <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                ✓ Verified
+              <span className="flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Verified
               </span>
             )}
           </div>
@@ -157,13 +168,22 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
           </p>
 
           <ul className="mt-4 space-y-2 text-sm text-slate-600">
-            {location.length > 0 && <li>📍 {location.join(", ")}</li>}
+            {location.length > 0 && (
+              <li className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                {location.join(", ")}
+              </li>
+            )}
             {profile.experienceYears != null && (
-              <li>🧑‍🏫 {profile.experienceYears} years experience</li>
+              <li className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-slate-400 shrink-0" />
+                {profile.experienceYears} years experience
+              </li>
             )}
             {hasFee && (
-              <li>
-                💰 ₹{profile.feeMin ?? "?"} – ₹{profile.feeMax ?? "?"} / month
+              <li className="flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-slate-400 shrink-0" />₹
+                {profile.feeMin ?? "?"} – ₹{profile.feeMax ?? "?"} / month
               </li>
             )}
           </ul>
@@ -187,7 +207,8 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
               onClick={onContact}
               className="mt-4 w-full flex items-center justify-center gap-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors"
             >
-              ✉️ Contact teacher
+              <Mail className="h-4 w-4" />
+              Contact teacher
             </button>
           )}
 
@@ -198,7 +219,12 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
                 onClick={onRevealContact}
                 className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium border border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-colors"
               >
-                {profile.contactPreference === "WHATSAPP" ? "💬 See WhatsApp number" : "📞 See contact number"}
+                {profile.contactPreference === "WHATSAPP" ? (
+                  <MessageCircle className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {profile.contactPreference === "WHATSAPP" ? "See WhatsApp number" : "See contact number"}
               </button>
               {contactError && <p className="text-xs text-red-600 mt-1.5">{contactError}</p>}
             </>
@@ -211,8 +237,12 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
               rel="noreferrer"
               className="mt-2 flex items-center justify-center gap-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
             >
-              {profile.contactPreference === "WHATSAPP" ? "💬 WhatsApp" : "📞 Call"}{" "}
-              {profile.contactNumber}
+              {profile.contactPreference === "WHATSAPP" ? (
+                <MessageCircle className="h-4 w-4" />
+              ) : (
+                <Phone className="h-4 w-4" />
+              )}
+              {profile.contactPreference === "WHATSAPP" ? "WhatsApp" : "Call"} {profile.contactNumber}
             </a>
           )}
         </div>
@@ -238,7 +268,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
           ))}
         </div>
 
-        <div className="p-5 sm:p-6 space-y-6 min-h-64">
+        <div key={currentTab} className="p-5 sm:p-6 space-y-6 min-h-64 animate-fade-in-up">
           {currentTab === "about" && (
             <>
               <Block
@@ -307,7 +337,10 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
             >
               <div className="space-y-4">
                 {profile.qualificationSummary && (
-                  <p className="text-slate-700">🎓 {profile.qualificationSummary}</p>
+                  <p className="flex items-center gap-2 text-slate-700">
+                    <GraduationCap className="h-4 w-4 text-slate-400 shrink-0" />
+                    {profile.qualificationSummary}
+                  </p>
                 )}
 
                 {profile.qualifications?.length > 0 && (

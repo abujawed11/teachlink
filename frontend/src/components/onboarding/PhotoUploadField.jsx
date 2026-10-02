@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Camera, UploadCloud } from "lucide-react";
 
 import { uploadProfilePhoto } from "../../api/teacherApi";
 
@@ -60,13 +61,14 @@ function PhotoUploadField({ value, onUploaded }) {
         {value ? (
           <img src={value} alt="" className="h-16 w-16 rounded-full object-cover" />
         ) : (
-          <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl">
-            📷
+          <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+            <Camera className="h-6 w-6" />
           </div>
         )}
 
         <div className="text-sm">
-          <p className="text-indigo-600 font-medium">
+          <p className="flex items-center gap-1.5 text-indigo-600 font-medium">
+            <UploadCloud className="h-4 w-4" />
             {uploading ? "Uploading..." : "Click or drag a photo here"}
           </p>
           <p className="text-slate-400">JPEG, PNG, or WEBP — up to 5MB</p>

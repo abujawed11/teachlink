@@ -1,3 +1,5 @@
+import { GraduationCap, IndianRupee, UserRound } from "lucide-react";
+
 function ProfilePreviewCard({ values, compact }) {
   const modes = [
     values.onlineAvailable && "Online",
@@ -46,11 +48,22 @@ function ProfilePreviewCard({ values, compact }) {
       )}
 
       <div className="text-sm text-slate-600 space-y-1">
-        {values.qualificationSummary && <p>🎓 {values.qualificationSummary}</p>}
-        {values.experienceYears != null && <p>🧑‍🏫 {values.experienceYears} years experience</p>}
+        {values.qualificationSummary && (
+          <p className="flex items-center gap-1.5">
+            <GraduationCap className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {values.qualificationSummary}
+          </p>
+        )}
+        {values.experienceYears != null && (
+          <p className="flex items-center gap-1.5">
+            <UserRound className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {values.experienceYears} years experience
+          </p>
+        )}
         {(values.feeMin != null || values.feeMax != null) && (
-          <p>
-            💰 {values.feeMin ?? "?"} - {values.feeMax ?? "?"} / month
+          <p className="flex items-center gap-1.5">
+            <IndianRupee className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {values.feeMin ?? "?"} - {values.feeMax ?? "?"} / month
           </p>
         )}
       </div>

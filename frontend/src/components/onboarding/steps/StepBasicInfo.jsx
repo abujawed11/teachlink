@@ -1,3 +1,5 @@
+import { Sparkles } from "lucide-react";
+
 import FormField, { getInputClass } from "../FormField";
 import PhotoUploadField from "../PhotoUploadField";
 
@@ -5,8 +7,9 @@ function StepBasicInfo({ values, onChange, errors = {} }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-800">Basic Information</h2>
-      <p className="text-sm text-slate-500">
-        This is the first thing students and parents will see. Make it count! 👋
+      <p className="flex items-center gap-1.5 text-sm text-slate-500">
+        <Sparkles className="h-4 w-4 text-indigo-400 shrink-0" />
+        This is the first thing students and parents will see. Make it count!
       </p>
 
       <FormField label="Headline" required error={errors.headline}>

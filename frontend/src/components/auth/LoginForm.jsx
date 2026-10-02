@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Lock, User } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
 
@@ -38,31 +39,37 @@ function LoginForm({ onSuccess, onSwitchToRegister }) {
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Username
         </label>
-        <input
-          type="text"
-          name="username"
-          autoComplete="username"
-          value={form.username}
-          onChange={handleChange}
-          required
-          autoFocus
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={form.username}
+            onChange={handleChange}
+            required
+            autoFocus
+            className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">
           Password
         </label>
-        <input
-          type="password"
-          name="password"
-          autoComplete="current-password"
-          value={form.password}
-          onChange={handleChange}
-          required
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
       </div>
 
       <button

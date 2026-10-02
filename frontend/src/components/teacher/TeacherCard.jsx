@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { BadgeCheck, GraduationCap, IndianRupee, MapPin } from "lucide-react";
 
 const MAX_CHIPS = 3;
 
@@ -26,7 +27,7 @@ function TeacherCard({ teacher }) {
   return (
     <Link
       to={`/teachers/${teacher.slug}`}
-      className="group flex flex-col bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all"
+      className="group flex flex-col bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
     >
       <div className="flex items-center gap-3">
         {teacher.photoUrl ? (
@@ -46,8 +47,8 @@ function TeacherCard({ teacher }) {
               {teacher.name}
             </h3>
             {teacher.isVerified && (
-              <span title="Verified" className="text-emerald-600 text-sm">
-                ✓
+              <span title="Verified" className="inline-flex shrink-0">
+                <BadgeCheck className="h-4 w-4 text-emerald-600" />
               </span>
             )}
           </div>
@@ -55,12 +56,23 @@ function TeacherCard({ teacher }) {
         </div>
       </div>
 
-      <ul className="mt-4 space-y-1 text-sm text-slate-600">
-        {location && <li>📍 {location}</li>}
-        {teacher.experienceYears != null && <li>🧑‍🏫 {teacher.experienceYears} years experience</li>}
+      <ul className="mt-4 space-y-1.5 text-sm text-slate-600">
+        {location && (
+          <li className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {location}
+          </li>
+        )}
+        {teacher.experienceYears != null && (
+          <li className="flex items-center gap-1.5">
+            <GraduationCap className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            {teacher.experienceYears} years experience
+          </li>
+        )}
         {hasFee && (
-          <li>
-            💰 ₹{teacher.feeMin ?? "?"} – ₹{teacher.feeMax ?? "?"} / month
+          <li className="flex items-center gap-1.5">
+            <IndianRupee className="h-3.5 w-3.5 text-slate-400 shrink-0" />₹
+            {teacher.feeMin ?? "?"} – ₹{teacher.feeMax ?? "?"} / month
           </li>
         )}
       </ul>

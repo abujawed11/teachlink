@@ -1,4 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
 
@@ -13,8 +14,10 @@ function ProtectedRoute({ role, onLogin, children }) {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-8 text-center space-y-4">
-        <div className="text-4xl">🔒</div>
+      <div className="max-w-md mx-auto p-8 text-center space-y-4 animate-fade-in-up">
+        <div className="mx-auto h-14 w-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <Lock className="h-6 w-6" />
+        </div>
         <h1 className="text-xl font-bold text-slate-900">Please log in to continue</h1>
         <p className="text-slate-500">You need to be logged in to view this page.</p>
         <div className="flex justify-center gap-3">

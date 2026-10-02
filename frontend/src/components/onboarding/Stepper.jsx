@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 function Stepper({ steps, currentStep }) {
   return (
     <div className="flex items-center justify-between mb-8">
@@ -18,7 +20,7 @@ function Stepper({ steps, currentStep }) {
                       : "bg-slate-200 text-slate-500"
                 }`}
               >
-                {isComplete ? "✓" : stepNumber}
+                {isComplete ? <Check className="h-4 w-4" /> : stepNumber}
               </div>
               <span
                 className={`text-xs ${isActive ? "text-indigo-700 font-medium" : "text-slate-500"}`}

@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
+import {
+  GraduationCap,
+  Inbox,
+  LogOut,
+  Search,
+  Settings as SettingsIcon,
+  Shield,
+  UserCircle2,
+} from "lucide-react";
 
 import { getUnreadCount } from "./api/contactApi";
 
@@ -15,6 +24,19 @@ import Requests from "./pages/Requests";
 import Settings from "./pages/Settings";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
+
+function NavLink({ to, icon: Icon, children, badge }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors"
+    >
+      <Icon className="h-4 w-4" />
+      {children}
+      {badge}
+    </Link>
+  );
+}
 
 function App() {
   const { user, loading, logout } = useAuth();
@@ -39,35 +61,40 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-6">
-        <Link to="/" className="font-bold text-indigo-600">
+      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3.5 flex items-center gap-6 shadow-sm">
+        <Link to="/" className="flex items-center gap-1.5 font-bold text-indigo-600">
+          <GraduationCap className="h-6 w-6" />
           TeachLink
         </Link>
-        <Link to="/teachers" className="text-slate-600 hover:text-indigo-600">
+        <NavLink to="/teachers" icon={Search}>
           Find Teachers
-        </Link>
+        </NavLink>
         {isTeacher && (
-          <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600">
+          <NavLink to="/dashboard" icon={UserCircle2}>
             My Profile
-          </Link>
+          </NavLink>
         )}
         {isAdmin && (
-          <Link to="/admin" className="text-slate-600 hover:text-indigo-600">
+          <NavLink to="/admin" icon={Shield}>
             Admin
-          </Link>
+          </NavLink>
         )}
         {user && (
-          <Link
+          <NavLink
             to="/requests"
-            className="text-slate-600 hover:text-indigo-600 flex items-center gap-1.5"
+            icon={Inbox}
+            badge={
+              isTeacher &&
+              unread > 0 && (
+                <span className="relative flex h-5 w-5 items-center justify-center bg-indigo-600 text-white text-xs rounded-full leading-none">
+                  {unread}
+                  <span className="absolute inset-0 rounded-full animate-pulse-ring" />
+                </span>
+              )
+            }
           >
             Requests
-            {isTeacher && unread > 0 && (
-              <span className="bg-indigo-600 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
-                {unread}
-              </span>
-            )}
-          </Link>
+          </NavLink>
         )}
 
         <div className="ml-auto flex items-center gap-3">
@@ -76,14 +103,14 @@ function App() {
               <button
                 type="button"
                 onClick={() => setAuthMode("login")}
-                className="text-slate-600 hover:text-indigo-600 px-3 py-1.5"
+                className="text-slate-600 hover:text-indigo-600 px-3 py-1.5 transition-colors"
               >
                 Log in
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode("register")}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-lg transition-colors"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm hover:shadow-md"
               >
                 Sign up
               </button>
@@ -92,14 +119,20 @@ function App() {
 
           {!loading && user && (
             <>
-              <Link to="/settings" title="Account settings" className="text-slate-600 hover:text-indigo-600">
+              <Link
+                to="/settings"
+                title="Account settings"
+                className="flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors"
+              >
+                <SettingsIcon className="h-4 w-4" />
                 Hi, {user.name}
               </Link>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="text-slate-600 hover:text-indigo-600"
+                className="flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors"
               >
+                <LogOut className="h-4 w-4" />
                 Logout
               </button>
             </>

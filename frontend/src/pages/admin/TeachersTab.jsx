@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { BadgeCheck } from "lucide-react";
 
 import { getAdminTeachers, moderateTeacher } from "../../api/adminApi";
 import Pagination from "../../components/common/Pagination";
@@ -139,7 +140,16 @@ function TeachersTab() {
                   <StatusBadge teacher={teacher} />
                 </td>
                 <td className={td}>
-                  {teacher.isVerified ? <Badge tone="green">✓ Verified</Badge> : <span className="text-slate-300">—</span>}
+                  {teacher.isVerified ? (
+                    <Badge tone="green">
+                      <span className="inline-flex items-center gap-1">
+                        <BadgeCheck className="h-3.5 w-3.5" />
+                        Verified
+                      </span>
+                    </Badge>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
                 </td>
                 <td className={`${td} text-slate-500`}>{formatDate(teacher.createdAt)}</td>
                 <td className={`${td} text-right whitespace-nowrap`}>

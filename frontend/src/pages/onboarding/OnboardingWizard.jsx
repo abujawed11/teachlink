@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, PartyPopper } from "lucide-react";
 
 import {
   getBoards,
@@ -139,8 +140,8 @@ function OnboardingWizard() {
 
   if (publishedMessage) {
     return (
-      <div className="max-w-xl mx-auto p-8 text-center space-y-4">
-        <div className="text-4xl">🎉</div>
+      <div className="max-w-xl mx-auto p-8 text-center space-y-4 animate-fade-in-up">
+        <PartyPopper className="h-12 w-12 text-indigo-500 mx-auto" />
         <h1 className="text-2xl font-bold text-indigo-600">{publishedMessage}</h1>
         <p className="text-slate-500">
           Visitors can now find you at /teachers/{profile.slug}
@@ -148,9 +149,10 @@ function OnboardingWizard() {
         <button
           type="button"
           onClick={() => navigate(`/teachers/${profile.slug}`)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors"
         >
           View my public profile
+          <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     );
