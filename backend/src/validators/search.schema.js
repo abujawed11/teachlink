@@ -46,4 +46,4 @@ const searchSchema = z.object({
   pageSize: optionalInt(1, 50).transform((value) => value ?? 12),
 });
 
-module.exports = { searchSchema };
+module.exports = { searchSchema, text, optionalInt };

@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–7 and 9 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 10 (admin) onward is still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–7, 9 and 10 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 11 (hardening) and Phase 12 (deployment) are still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
 
 ---
 
@@ -424,8 +424,8 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 
 ### Phase 6 — Public Teacher Profile (full) ✅ DONE (contact form deferred to Phase 9)
 - **Objective:** Complete public profile page per §8.
-- **Backend:** `GET /api/teachers/:slug` joins subjects/grades/boards/languages/qualifications/experience/availability and serialises through `toPublicProfile`, which excludes email, phone, pincode, `profileViews` and raw ids. 404 for unpublished, suspended or unknown slugs. `contactNumber` is returned only when `contactPreference` is not `PLATFORM_ONLY`.
-- **Frontend:** `pages/TeacherProfile.jsx` renders the shared `components/profile/ProfileView.jsx` (see Phase 8) in read-only mode: empty sections/tabs are hidden, `document.title` is set to the teacher's name, and a friendly "Teacher not found" page covers 404s. A Call/WhatsApp button appears when the teacher opted in to showing a number (`tel:` / `wa.me/<digits>` links).
+- **Backend:** `GET /api/teachers/:slug` joins subjects/grades/boards/languages/qualifications/experience/availability and serialises through `toPublicProfile`, which excludes email, phone, pincode, `profileViews` and raw ids. 404 for unpublished, suspended or unknown slugs. `contactNumber` is **not** returned (only `hasContactNumber`); see the Phase 9 "See contact" gate.
+- **Frontend:** `pages/TeacherProfile.jsx` renders the shared `components/profile/ProfileView.jsx` (see Phase 8) in read-only mode: empty sections/tabs are hidden, `document.title` is set to the teacher's name, and a friendly "Teacher not found" page covers 404s. When the teacher opted in to showing a number, visitors see a "See contact number" button; after login and unlock it becomes a Call/WhatsApp button (`tel:` / `wa.me/<digits>` links).
 - **Deferred:** the platform contact-request form is Phase 9; the SEO items in §22 (sitemap, robots, JSON-LD) are still TODO.
 - **Definition of Done:** any visitor can view a complete, correctly-scoped public profile. ✅
 
@@ -454,22 +454,33 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
   - `PATCH /api/contact-requests/:id/read` (TEACHER) — scoped to the caller's own profile, so another teacher's id is simply a 404.
   - `GET /api/contact-requests/sent` (any logged-in user) — own sent requests; the teacher link is dropped if the profile has since been unpublished.
 - **Frontend:** a **"Contact teacher"** button on the public profile card (`ProfileView` `onContact`). Logged-out visitors get the login modal and, once signed in, the form opens automatically. `ContactModal` has a message box with a character counter, an optional phone field, validation mirroring the server, and a "Request sent" confirmation. New `/requests` page (any logged-in user): **Received** tab for teachers (New badge, mailto/tel links, "Mark as read") and **Sent** tab. The nav shows a **Requests** link with an unread badge for teachers, refreshed on every route change.
-- **Privacy:** the teacher's own email/phone is never exposed through this flow; the Call/WhatsApp button still appears only if the teacher opted in via `contactPreference`.
-- **Testing done:** 20 automated API checks against the real database (temporary users, cleaned up afterwards) — anonymous 401, validation, self-contact, unpublished/unknown slug 404, send, teacher-to-teacher, role/ownership (403/404), unread counts, mark read, sent list, no password leakage, and the 6th request in a day returning 429. The frontend compiles and lints clean; the UI itself has **not** been walked through in a browser yet.
+- **Privacy:** the teacher's own email/phone is never exposed through the request flow.
+- **"See contact" gate (added after first build):** a teacher's opted-in `contactNumber` is **no longer in any public response**. `GET /api/teachers/:slug` returns only `hasContactNumber` (true when the teacher opted in via `contactPreference` and entered a number). Logged-in users unlock it through `GET /api/teachers/:slug/contact-number` (published + active + opted-in teachers only; everything else is a uniform 404 so the endpoint can't be used to discover who has a number). Limit: **20 new teachers per account per rolling 24 h** (429); numbers already unlocked stay available and a teacher can always read their own. Each first unlock is recorded in a new `ContactReveal` table (unique per viewer + teacher; migration `add_contact_reveals`) — nothing displays it yet, but it enables a future "who viewed your number" feature. On the profile, anonymous visitors see **See contact number / See WhatsApp number**; clicking opens the login modal and the number loads automatically after login, then becomes a Call/WhatsApp button. An unlocked number is hidden again if the visitor logs out.
+- **Testing done:** 20 automated API checks for the request flow plus 17 for the contact-number gate, against the real database (temporary users, cleaned up afterwards) — anonymous 401, validation, self-contact, unpublished/unknown slug 404, send, teacher-to-teacher, role/ownership (403/404), unread counts, mark read, sent list, no password leakage, and the 6th request in a day returning 429. The frontend compiles and lints clean; the UI itself has **not** been walked through in a browser yet.
 - **Known gaps:** teachers get no email notification (dashboard only — needs an email provider, §25 #3); a teacher viewing their own public page still sees the Contact button and gets a "your own profile" error if they use it; no reply/thread feature (replying happens off-platform via the shown email/phone); no delete/archive.
 - **Definition of Done:** a logged-in visitor can reach a teacher without the teacher's raw phone number being exposed by default. ✅
 
-### Phase 10 — Admin Basics
+### Phase 10 — Admin Basics ✅ DONE
 - **Objective:** §12 admin capabilities.
-- **Backend:** `admin.routes.js`/`controller`/`service`, `requireRole('ADMIN')` enforced; lookup management endpoints.
-- **Frontend:** minimal `pages/admin/*` tables with action buttons (no fancy dashboard needed).
-- **Testing checklist:** non-admins get 403 on all admin routes; suspending a user hides their published profile; lookup edits reflect immediately in search filters/forms.
-- **Definition of Done:** a seeded admin account can moderate users/teachers and manage lookup lists.
+- **Schema changes (migration `add_admin_moderation`):** `TeacherProfile.isHiddenByAdmin` (separate from `isPublished`, so a teacher **cannot undo a hide by re-publishing**) and `Language.isActive` (the other three lookups already had it).
+- **Access control:** every `/api/admin/*` route runs `requireAuth` then a new `requireActiveAdmin`, which **re-reads the user from the database** — a forged/stale token role, a demoted admin or a suspended admin gets a 403 immediately instead of when the 15-minute token expires.
+- **Backend:** `admin.routes.js` / `admin.controller.js` / `admin.service.js` / `validators/admin.schema.js`.
+  - `GET /api/admin/users` (search `q` over name/username/email, `role`, `status`, pagination; never selects the password hash) and `PATCH /api/admin/users/:id/status` (`ACTIVE`/`SUSPENDED`). An admin can't change their own status, and **admin accounts can't be suspended through the API** (managed in the database).
+  - `GET /api/admin/teachers` (search, `visibility = published|draft|hidden`, pagination; each row carries an `isVisible` flag = what a visitor can actually see, and no private fields) and `PATCH /api/admin/teachers/:id` with `isHiddenByAdmin` and/or `isVerified`. Verification is a **manual badge toggle only** — there is still no verification workflow (§19).
+  - `GET|POST /api/admin/lookups/:type` and `PATCH /api/admin/lookups/:type/:id` for `subjects|grades|boards|languages`: list includes inactive items with a `teacherCount`; create trims the name and returns 409 on a case-insensitive duplicate; new grades are appended after the last `sortOrder`; update can rename, (de)activate and (grades) reorder. **No delete endpoint** — items are deactivated because profiles reference them. Deactivated items vanish from public lookups and search filters, while teachers who already have them keep them.
+- **Moderation effects (verified):** a suspended account's public page 404s, it disappears from search, login returns 403, and `/api/auth/me` returns 403 and clears the cookies, so the user is signed out on their next page load. A hidden profile 404s publicly, drops out of search, can't be contacted, its number can't be unlocked, and the teacher gets `403 PROFILE_HIDDEN` if they try to publish.
+- **Frontend:** `/admin` (ADMIN only; nav link shown only to admins) with three tabs — **Users** (search, role/status filters, Suspend/Reactivate with a confirm), **Teachers** (search, visibility filter, Hide/Unhide, Verify/Unverify, status badges) and **Subjects & lists** (switch between subjects/classes/boards/languages, add, rename inline, activate/deactivate with a usage-aware confirm). Shared `Pagination` component and `useDebouncedValue` hook. A teacher whose profile is hidden sees a red "Hidden by an administrator" badge and notice on My Profile, with the Publish button disabled.
+- **Creating the first admin:** there is deliberately no default password and no sign-up path to ADMIN. Put `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (min 8 chars, optional `ADMIN_NAME`) in `backend/.env` and run `npm run prisma:seed`. If the username already exists it is promoted to ADMIN and its password is left untouched. If none of the three are set the seed skips the admin step; if only some are set it fails with a message naming the missing variable (e.g. `missing ADMIN_EMAIL in .env`) rather than silently skipping — all three are required. Remove the password from `.env` afterwards if you prefer.
+- **Testing done:** 56 automated API checks against the real database (temporary users/lookups, cleaned up afterwards): auth/role gating incl. forged role and suspended admin, user list/filters/no password leak, suspend/reactivate and their effect on login, `/me`, public page and search, hide/unhide and every place a hidden profile must disappear, verify badge, and the full lookup lifecycle (create, duplicate, rename, deactivate, public visibility, ordering, no hard delete). The earlier contact (20) and number-unlock (17) suites were re-run and still pass; the seed's admin creation/promotion was verified. The admin UI compiles and lints but has **not** been walked through in a browser.
+- **Known gaps:** no audit log of who suspended/hid whom or why (no reason field either); no reports/flagging workflow or bulk actions (still §19); suspended users' existing access tokens stay valid for up to 15 minutes for endpoints that don't re-check status (login, refresh, `/me`, contact and admin routes do); admin password can't be changed in-app (no Account Settings yet).
+- **Definition of Done:** a seeded admin account can moderate users/teachers and manage lookup lists. ✅
 
 ### Phase 11 — Security, Testing, Optimization
 - **Objective:** Harden before launch.
 - **Backend:** tighten rate limits on auth, review Helmet/CORS config for prod domains, add indexes if query plans need them, add `sharp` image resizing, write integration tests for auth/profile/search.
-- **Frontend:** basic accessibility pass, loading/error states everywhere, form validation polish.
+- **Secrets & credentials (found during Phase 10 setup):** `backend/.env` still has the placeholder `JWT_SECRET=change_this_secret` / `JWT_REFRESH_SECRET=change_this_refresh_secret` — anyone who knows them can forge a login token, including an ADMIN one. Replace both with long random values (and different from each other), and use separate values per environment. Use a strong admin password (the dev `admin123` passes the 8-character minimum but is not acceptable for a public deployment); consider removing `ADMIN_PASSWORD` from `.env` after the admin is seeded. Consider failing startup in production if the JWT secrets are the placeholder values.
+- **Suspension gap:** a suspended user's existing access token stays valid for up to 15 minutes on endpoints that don't re-check status — decide whether `requireAuth` should check status (costs one query per request) or keep the short TTL.
+- **Frontend:** basic accessibility pass, loading/error states everywhere, form validation polish; the protected-route redirect currently sends logged-out visitors silently to the home page instead of prompting login.
 - **Testing checklist:** run full manual QA pass (§20 checklist), fix any privacy leaks found via direct API inspection.
 - **Definition of Done:** no known security/privacy gaps against §15/§16; core flows covered by automated tests.
 
@@ -558,7 +569,7 @@ MVP is complete when:
 - [x] Phase 7 — Teacher search & discovery (API, Find Teachers, Home)
 - [~] Phase 8 — Teacher dashboard & profile management (done except Account Settings)
 - [x] Phase 9 — Contact flow (login required; in-app inbox, no email yet)
-- [ ] Phase 10 — Admin basics
+- [x] Phase 10 — Admin basics (users, teachers, lookups; hide/suspend/verify)
 - [ ] Phase 11 — Security, testing, optimization
 - [ ] Phase 12 — Production deployment
 
@@ -582,6 +593,8 @@ Everything below was added or done differently from what the sections above orig
 - Home page content (hero quick-search, newest teachers, how-it-works, teacher CTA) and a `register-teacher` entry point that pre-ticks the teacher checkbox in the sign-up modal (`defaultAsTeacher` prop on `RegisterForm`).
 - `components/onboarding/stepSave.js` — shared "save this step" logic used by both the wizard and the edit modal.
 - Collapsible "More filters" panel on Find Teachers.
+- Phase 10 admin: a separate `isHiddenByAdmin` flag (instead of §12's "hide sets `isPublished=false`", which a teacher could simply undo by re-publishing), `Language.isActive`, DB-checked `requireActiveAdmin`, suspended users signed out via `/api/auth/me`, and an env-driven admin seed.
+- Contact-number gate: `contactNumber` removed from public payloads (`hasContactNumber` flag instead), unlocked by logged-in users via `GET /api/teachers/:slug/contact-number` with a per-account daily cap and a `ContactReveal` audit table. **This changes the Phase 6 public-profile contract** (`contactNumber` is no longer returned publicly).
 - Phase 9 contact flow with an in-app inbox (`/requests`) and nav unread badge — and a decision to **require login to contact** a teacher, changing the original "anonymous contact form" idea in §8/§9/§16.
 
 **Changed from the original design**
@@ -593,7 +606,8 @@ Everything below was added or done differently from what the sections above orig
 - Fees display with a ₹ sign on profile and cards (the onboarding preview card still shows no symbol).
 
 **Operational notes**
-- Fresh database: `npx prisma migrate dev`, then `npm run prisma:seed` (lookups are empty otherwise).
+- Fresh database: `npx prisma migrate dev`, then `npm run prisma:seed` (lookups are empty otherwise). To also create an admin, set `ADMIN_USERNAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `backend/.env` first.
+- `backend/.env` holds real credentials and placeholder secrets — never commit it (it is gitignored) and replace the JWT secrets before any shared or production deployment (see Phase 11).
 - On Windows, stop the running backend before `npx prisma generate`/`migrate dev`, or Prisma can't replace its locked engine file (`EPERM`).
 - The shadow database used by `migrate dev` needs broad MySQL privileges for the dev user (`GRANT ALL ON *.*`), including `INDEX`.
 
@@ -601,5 +615,7 @@ Everything below was added or done differently from what the sections above orig
 - Edit (not just add/delete) for qualifications, experience and availability.
 - Account Settings page and `/api/users/me`.
 - Fee-sort null ordering; whether to make a photo mandatory before publish (§25 #5).
-- Phases 10–12 unchanged: admin, security/testing, deployment.
+- Replace placeholder JWT secrets and the dev admin password before deployment (Phase 11).
+- Admin audit log (who suspended/hid what, and why); reports/flagging and bulk actions.
+- Phases 11–12 unchanged: security/testing, deployment.
 - Email notifications for new contact requests; hide the Contact button on a teacher's own public page.

@@ -4,6 +4,7 @@ const authRoutes = require("./auth.routes");
 const teacherRoutes = require("./teacher.routes");
 const lookupRoutes = require("./lookup.routes");
 const contactRoutes = require("./contact.routes");
+const adminRoutes = require("./admin.routes");
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use("/auth", authRoutes);
 router.use("/teachers", teacherRoutes);
 router.use("/lookups", lookupRoutes);
 router.use("/contact-requests", contactRoutes);
+router.use("/admin", adminRoutes);
 
 module.exports = router;

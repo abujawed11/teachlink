@@ -14,7 +14,7 @@ async function sendRequest(senderId, slug, { message, phone }) {
     include: { user: { select: { status: true } } },
   });
 
-  if (!profile || !profile.isPublished || profile.user.status !== "ACTIVE") {
+  if (!profile || !profile.isPublished || profile.isHiddenByAdmin || profile.user.status !== "ACTIVE") {
     throw new AppError("Teacher profile not found", 404, "NOT_FOUND");
   }
 
@@ -56,7 +56,13 @@ async function revealContactNumber(userId, slug) {
 
   const optedIn =
     profile && profile.contactPreference !== "PLATFORM_ONLY" && Boolean(profile.contactNumber);
-  if (!profile || !profile.isPublished || profile.user.status !== "ACTIVE" || !optedIn) {
+  if (
+    !profile ||
+    !profile.isPublished ||
+    profile.isHiddenByAdmin ||
+    profile.user.status !== "ACTIVE" ||
+    !optedIn
+  ) {
     throw new AppError("This teacher hasn't shared a contact number", 404, "NOT_FOUND");
   }
 

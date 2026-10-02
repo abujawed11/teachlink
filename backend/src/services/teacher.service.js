@@ -75,6 +75,13 @@ function getPublishRequirementErrors(profile) {
 
 async function publishOwnProfile(userId) {
   const profile = await getOwnProfile(userId);
+  if (profile.isHiddenByAdmin) {
+    throw new AppError(
+      "This profile has been hidden by an administrator and can't be published",
+      403,
+      "PROFILE_HIDDEN"
+    );
+  }
   const errors = getPublishRequirementErrors(profile);
 
   if (errors.length > 0) {
@@ -264,7 +271,12 @@ async function getPublicProfileBySlug(slug) {
     include: { user: true, ...PROFILE_INCLUDE },
   });
 
-  if (!profile || !profile.isPublished || profile.user.status !== "ACTIVE") {
+  if (
+    !profile ||
+    !profile.isPublished ||
+    profile.isHiddenByAdmin ||
+    profile.user.status !== "ACTIVE"
+  ) {
     throw new AppError("Teacher profile not found", 404, "NOT_FOUND");
   }
 

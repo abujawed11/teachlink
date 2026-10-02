@@ -74,14 +74,20 @@ function MyProfile() {
           <div className="flex items-center gap-3">
             <span
               className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                profile.isPublished
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-amber-100 text-amber-700"
+                profile.isHiddenByAdmin
+                  ? "bg-red-100 text-red-700"
+                  : profile.isPublished
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
               }`}
             >
-              {profile.isPublished ? "Published" : "Draft — not visible to visitors"}
+              {profile.isHiddenByAdmin
+                ? "Hidden by an administrator"
+                : profile.isPublished
+                  ? "Published"
+                  : "Draft — not visible to visitors"}
             </span>
-            {profile.isPublished && (
+            {profile.isPublished && !profile.isHiddenByAdmin && (
               <Link
                 to={`/teachers/${profile.slug}`}
                 className="text-sm text-indigo-600 hover:underline"
@@ -94,7 +100,7 @@ function MyProfile() {
           <button
             type="button"
             onClick={handleTogglePublish}
-            disabled={togglingPublish}
+            disabled={togglingPublish || (profile.isHiddenByAdmin && !profile.isPublished)}
             className={`text-sm font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
               profile.isPublished
                 ? "text-slate-600 border border-slate-300 hover:bg-slate-50"
@@ -108,6 +114,13 @@ function MyProfile() {
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
             {error}
+          </p>
+        )}
+
+        {profile.isHiddenByAdmin && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
+            An administrator has hidden your profile, so it isn't visible to visitors and can't be
+            published right now. If you think this is a mistake, please contact support.
           </p>
         )}
 

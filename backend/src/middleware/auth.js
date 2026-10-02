@@ -1,3 +1,4 @@
+const prisma = require("../lib/prisma");
 const AppError = require("../utils/AppError");
 const { verifyAccessToken } = require("../utils/jwt");
 
@@ -24,4 +25,21 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+// Admin routes re-check the database rather than trusting the token, so a demoted or
+// suspended admin loses access immediately instead of when their token expires.
+async function requireActiveAdmin(req, res, next) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.sub },
+      select: { role: true, status: true },
+    });
+    if (!user || user.role !== "ADMIN" || user.status !== "ACTIVE") {
+      return next(new AppError("Forbidden", 403, "FORBIDDEN"));
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { requireAuth, requireRole, requireActiveAdmin };

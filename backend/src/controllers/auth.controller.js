@@ -64,6 +64,10 @@ const me = asyncHandler(async (req, res) => {
   if (!user) {
     throw new AppError("User not found", 404, "NOT_FOUND");
   }
+  if (user.status === "SUSPENDED") {
+    clearAuthCookies(res);
+    throw new AppError("This account has been suspended", 403, "ACCOUNT_SUSPENDED");
+  }
   res.json({ user: sanitizeUser(user) });
 });
 

@@ -99,9 +99,11 @@ model TeacherProfile {
   contactPreference ContactPreference @default(PLATFORM_ONLY)
   contactNumber     String?
 
-  isPublished  Boolean @default(false)
-  isVerified   Boolean @default(false)
-  profileViews Int     @default(0)
+  isPublished     Boolean @default(false)
+  // Set by an admin; unlike isPublished the teacher cannot undo it by re-publishing.
+  isHiddenByAdmin Boolean @default(false)
+  isVerified      Boolean @default(false)
+  profileViews    Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -146,8 +148,9 @@ model Board {
 }
 
 model Language {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
 
   teachers TeacherLanguage[]
 }

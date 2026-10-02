@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import FindTeachers from "./pages/FindTeachers";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/admin/AdminPanel";
 import MyProfile from "./pages/dashboard/MyProfile";
 import OnboardingWizard from "./pages/onboarding/OnboardingWizard";
 import Requests from "./pages/Requests";
@@ -20,6 +21,7 @@ function App() {
   const [unread, setUnread] = useState(0);
   const { pathname } = useLocation();
   const isTeacher = user?.role === "TEACHER";
+  const isAdmin = user?.role === "ADMIN";
 
   // Keep the nav badge fresh as a teacher moves around the app.
   useEffect(() => {
@@ -45,6 +47,11 @@ function App() {
         {isTeacher && (
           <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600">
             My Profile
+          </Link>
+        )}
+        {isAdmin && (
+          <Link to="/admin" className="text-slate-600 hover:text-indigo-600">
+            Admin
           </Link>
         )}
         {user && (
@@ -102,6 +109,14 @@ function App() {
         <Route
           path="/teachers/:slug"
           element={<TeacherProfile onLogin={() => setAuthMode("login")} />}
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminPanel />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/requests"

@@ -47,6 +47,7 @@ function buildWhere(filters) {
   // AND across different filters, OR within a single filter's list of values.
   const where = {
     isPublished: true,
+    isHiddenByAdmin: false,
     user: { status: "ACTIVE" },
   };
 
@@ -60,7 +61,7 @@ function buildWhere(filters) {
     where.boards = { some: { board: { name: { in: filters.board }, isActive: true } } };
   }
   if (filters.language) {
-    where.languages = { some: { language: { name: { in: filters.language } } } };
+    where.languages = { some: { language: { name: { in: filters.language }, isActive: true } } };
   }
   if (filters.city) {
     where.OR = [

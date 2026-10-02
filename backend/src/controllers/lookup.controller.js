@@ -26,7 +26,10 @@ const getBoards = asyncHandler(async (req, res) => {
 });
 
 const getLanguages = asyncHandler(async (req, res) => {
-  const languages = await prisma.language.findMany({ orderBy: { name: "asc" } });
+  const languages = await prisma.language.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+  });
   res.json({ languages });
 });
 
