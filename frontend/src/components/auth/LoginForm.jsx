@@ -41,6 +41,7 @@ function LoginForm({ onSuccess, onSwitchToRegister }) {
         <input
           type="text"
           name="username"
+          autoComplete="username"
           value={form.username}
           onChange={handleChange}
           required
@@ -56,6 +57,7 @@ function LoginForm({ onSuccess, onSwitchToRegister }) {
         <input
           type="password"
           name="password"
+          autoComplete="current-password"
           value={form.password}
           onChange={handleChange}
           required

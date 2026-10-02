@@ -55,6 +55,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
           <input
             type="text"
             name="name"
+            autoComplete="name"
             value={form.name}
             onChange={handleChange}
             required
@@ -70,6 +71,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
           <input
             type="text"
             name="username"
+            autoComplete="username"
             value={form.username}
             onChange={handleChange}
             required
@@ -88,6 +90,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
         <input
           type="email"
           name="email"
+          autoComplete="email"
           value={form.email}
           onChange={handleChange}
           required
@@ -103,6 +106,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
           <input
             type="password"
             name="password"
+            autoComplete="new-password"
             value={form.password}
             onChange={handleChange}
             required
@@ -118,6 +122,7 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
           <input
             type="password"
             name="confirmPassword"
+            autoComplete="new-password"
             value={form.confirmPassword}
             onChange={handleChange}
             required
