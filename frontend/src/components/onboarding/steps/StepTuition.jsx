@@ -1,4 +1,4 @@
-import FormField, { inputClass } from "../FormField";
+import FormField, { getInputClass } from "../FormField";
 
 const MODE_FIELDS = [
   ["onlineAvailable", "Online teaching"],
@@ -10,26 +10,35 @@ const MODE_FIELDS = [
   ["demoClassAvailable", "Free demo class available"],
 ];
 
-function StepTuition({ values, onChange }) {
+function StepTuition({ values, onChange, errors = {} }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-800">Tuition Preferences</h2>
+      <p className="text-sm text-slate-500">How and where do you like to teach?</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {MODE_FIELDS.map(([field, label]) => (
-          <label
-            key={field}
-            className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2"
-          >
-            <input
-              type="checkbox"
-              checked={Boolean(values[field])}
-              onChange={(e) => onChange(field, e.target.checked)}
-              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            {label}
-          </label>
-        ))}
+      <div>
+        <p className="text-sm font-medium text-slate-700 mb-1">
+          Teaching Modes<span className="text-red-500 ml-0.5">*</span>
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {MODE_FIELDS.map(([field, label]) => (
+            <label
+              key={field}
+              className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(values[field])}
+                onChange={(e) => onChange(field, e.target.checked)}
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        {errors.teachingModes && (
+          <p className="text-xs text-red-600 mt-1">{errors.teachingModes}</p>
+        )}
       </div>
 
       {values.homeTuitionAvailable && (
@@ -45,13 +54,13 @@ function StepTuition({ values, onChange }) {
                 e.target.value === "" ? null : Number(e.target.value)
               )
             }
-            className={inputClass}
+            className={getInputClass(false)}
           />
         </FormField>
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Fee Min (per month)">
+        <FormField label="Fee Min (per month)" error={errors.feeMin}>
           <input
             type="number"
             min={0}
@@ -59,7 +68,7 @@ function StepTuition({ values, onChange }) {
             onChange={(e) =>
               onChange("feeMin", e.target.value === "" ? null : Number(e.target.value))
             }
-            className={inputClass}
+            className={getInputClass(Boolean(errors.feeMin))}
           />
         </FormField>
 
@@ -71,7 +80,7 @@ function StepTuition({ values, onChange }) {
             onChange={(e) =>
               onChange("feeMax", e.target.value === "" ? null : Number(e.target.value))
             }
-            className={inputClass}
+            className={getInputClass(false)}
           />
         </FormField>
       </div>
@@ -80,7 +89,7 @@ function StepTuition({ values, onChange }) {
         <select
           value={values.contactPreference || "PLATFORM_ONLY"}
           onChange={(e) => onChange("contactPreference", e.target.value)}
-          className={inputClass}
+          className={getInputClass(false)}
         >
           <option value="PLATFORM_ONLY">Platform contact form only (recommended)</option>
           <option value="PHONE">Show my phone number</option>

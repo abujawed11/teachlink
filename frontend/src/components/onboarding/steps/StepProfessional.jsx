@@ -1,9 +1,12 @@
-import FormField, { inputClass } from "../FormField";
+import FormField, { getInputClass } from "../FormField";
 
 function StepProfessional({ values, onChange }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-800">Professional Details</h2>
+      <p className="text-sm text-slate-500">
+        Your qualifications build trust with parents and students.
+      </p>
 
       <FormField label="Qualification Summary">
         <input
@@ -12,7 +15,7 @@ function StepProfessional({ values, onChange }) {
           onChange={(e) => onChange("qualificationSummary", e.target.value)}
           placeholder="e.g. M.Sc. Mathematics, B.Ed."
           maxLength={255}
-          className={inputClass}
+          className={getInputClass(false)}
         />
       </FormField>
 
@@ -28,7 +31,7 @@ function StepProfessional({ values, onChange }) {
               e.target.value === "" ? null : Number(e.target.value)
             )
           }
-          className={inputClass}
+          className={getInputClass(false)}
         />
       </FormField>
 

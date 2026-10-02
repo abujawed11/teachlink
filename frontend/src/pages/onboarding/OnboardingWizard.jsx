@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -6,12 +6,15 @@ import {
   publishMyProfile,
   updateMyProfile,
 } from "../../api/teacherApi";
+import ProfilePreviewCard from "../../components/onboarding/ProfilePreviewCard";
+import ProfileStrengthBar from "../../components/onboarding/ProfileStrengthBar";
 import Stepper from "../../components/onboarding/Stepper";
 import StepBasicInfo from "../../components/onboarding/steps/StepBasicInfo";
 import StepLocation from "../../components/onboarding/steps/StepLocation";
 import StepProfessional from "../../components/onboarding/steps/StepProfessional";
 import StepReview from "../../components/onboarding/steps/StepReview";
 import StepTuition from "../../components/onboarding/steps/StepTuition";
+import { computeProfileStrength, validateStep } from "../../components/onboarding/validation";
 
 const STEP_LABELS = ["Basic Info", "Professional", "Tuition", "Location", "Review"];
 
@@ -38,6 +41,7 @@ function OnboardingWizard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [stepErrors, setStepErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,8 +54,29 @@ function OnboardingWizard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const strength = useMemo(() => (profile ? computeProfileStrength(profile) : 0), [profile]);
+
+  const TEACHING_MODE_FIELDS = ["onlineAvailable", "offlineAvailable", "homeTuitionAvailable"];
+
   const handleChange = (field, value) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
+
+    const fieldsToClear = [field];
+    if (TEACHING_MODE_FIELDS.includes(field) && value) {
+      fieldsToClear.push("teachingModes");
+    }
+
+    setStepErrors((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const key of fieldsToClear) {
+        if (key in next) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   };
 
   const pickFields = (fields) =>
@@ -62,6 +87,14 @@ function OnboardingWizard() {
 
   const handleNext = async () => {
     setError("");
+
+    const errors = validateStep(currentStep, profile);
+    if (Object.keys(errors).length > 0) {
+      setStepErrors(errors);
+      return;
+    }
+    setStepErrors({});
+
     const fields = STEP_FIELDS[currentStep - 1];
     if (fields) {
       setSaving(true);
@@ -80,6 +113,7 @@ function OnboardingWizard() {
 
   const handleBack = () => {
     setError("");
+    setStepErrors({});
     setCurrentStep((step) => Math.max(step - 1, 1));
   };
 
@@ -124,51 +158,73 @@ function OnboardingWizard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 sm:p-8">
+    <div className="max-w-5xl mx-auto p-6 sm:p-8">
       <Stepper steps={STEP_LABELS} currentStep={currentStep} />
+      <ProfileStrengthBar percent={strength} />
 
-      <div className="bg-white shadow-sm border border-slate-200 rounded-xl p-6">
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
-            {error}
-          </p>
-        )}
-
-        {currentStep === 1 && <StepBasicInfo values={profile} onChange={handleChange} />}
-        {currentStep === 2 && <StepProfessional values={profile} onChange={handleChange} />}
-        {currentStep === 3 && <StepTuition values={profile} onChange={handleChange} />}
-        {currentStep === 4 && <StepLocation values={profile} onChange={handleChange} />}
-        {currentStep === 5 && <StepReview values={profile} />}
-
-        <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={currentStep === 1 || saving}
-            className="text-slate-600 hover:text-indigo-600 disabled:opacity-40 px-4 py-2"
-          >
-            Back
-          </button>
-
-          {currentStep < STEP_LABELS.length ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
-            >
-              {saving ? "Saving..." : "Save & Continue"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={saving}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
-            >
-              {saving ? "Publishing..." : "Publish Profile"}
-            </button>
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        <div className="bg-white shadow-sm border border-slate-200 rounded-xl p-6">
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
+              {error}
+            </p>
           )}
+
+          <div key={currentStep} className="animate-[scaleIn_0.2s_ease-out]">
+            {currentStep === 1 && (
+              <StepBasicInfo values={profile} onChange={handleChange} errors={stepErrors} />
+            )}
+            {currentStep === 2 && (
+              <StepProfessional values={profile} onChange={handleChange} />
+            )}
+            {currentStep === 3 && (
+              <StepTuition values={profile} onChange={handleChange} errors={stepErrors} />
+            )}
+            {currentStep === 4 && (
+              <StepLocation values={profile} onChange={handleChange} errors={stepErrors} />
+            )}
+            {currentStep === 5 && <StepReview values={profile} />}
+          </div>
+
+          <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={currentStep === 1 || saving}
+              className="text-slate-600 hover:text-indigo-600 disabled:opacity-40 px-4 py-2"
+            >
+              Back
+            </button>
+
+            {currentStep < STEP_LABELS.length ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={saving}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
+              >
+                {saving ? "Saving..." : "Save & Continue"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={saving}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg transition-colors"
+              >
+                {saving ? "Publishing..." : "Publish Profile"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="hidden lg:block">
+          <div className="sticky top-6 space-y-2">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+              Live Preview
+            </p>
+            <ProfilePreviewCard values={profile} compact />
+          </div>
         </div>
       </div>
     </div>

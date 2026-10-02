@@ -1,18 +1,21 @@
-import FormField, { inputClass } from "../FormField";
+import FormField, { getInputClass } from "../FormField";
 
-function StepBasicInfo({ values, onChange }) {
+function StepBasicInfo({ values, onChange, errors = {} }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-800">Basic Information</h2>
+      <p className="text-sm text-slate-500">
+        This is the first thing students and parents will see. Make it count! 👋
+      </p>
 
-      <FormField label="Headline">
+      <FormField label="Headline" required error={errors.headline}>
         <input
           type="text"
           value={values.headline || ""}
           onChange={(e) => onChange("headline", e.target.value)}
           placeholder="e.g. Experienced Mathematics Tutor for Classes 9-12"
           maxLength={150}
-          className={inputClass}
+          className={getInputClass(Boolean(errors.headline))}
         />
       </FormField>
 
@@ -23,7 +26,7 @@ function StepBasicInfo({ values, onChange }) {
           rows={5}
           maxLength={3000}
           placeholder="Tell students and parents about your teaching style and background."
-          className={inputClass}
+          className={getInputClass(false)}
         />
       </FormField>
 
@@ -33,7 +36,7 @@ function StepBasicInfo({ values, onChange }) {
           value={values.photoUrl || ""}
           onChange={(e) => onChange("photoUrl", e.target.value)}
           placeholder="https://..."
-          className={inputClass}
+          className={getInputClass(false)}
         />
       </FormField>
 
@@ -41,7 +44,7 @@ function StepBasicInfo({ values, onChange }) {
         <select
           value={values.gender || ""}
           onChange={(e) => onChange("gender", e.target.value || null)}
-          className={inputClass}
+          className={getInputClass(false)}
         >
           <option value="">Prefer not to say</option>
           <option value="MALE">Male</option>

@@ -1,9 +1,12 @@
-import FormField, { inputClass } from "../FormField";
+import FormField, { getInputClass } from "../FormField";
 
-function StepLocation({ values, onChange }) {
+function StepLocation({ values, onChange, errors = {} }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-800">Location</h2>
+      <p className="text-sm text-slate-500">
+        Where can students find and reach you?
+      </p>
 
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Country">
@@ -11,7 +14,7 @@ function StepLocation({ values, onChange }) {
             type="text"
             value={values.country || ""}
             onChange={(e) => onChange("country", e.target.value)}
-            className={inputClass}
+            className={getInputClass(false)}
           />
         </FormField>
 
@@ -20,18 +23,18 @@ function StepLocation({ values, onChange }) {
             type="text"
             value={values.state || ""}
             onChange={(e) => onChange("state", e.target.value)}
-            className={inputClass}
+            className={getInputClass(false)}
           />
         </FormField>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="City">
+        <FormField label="City" required error={errors.city}>
           <input
             type="text"
             value={values.city || ""}
             onChange={(e) => onChange("city", e.target.value)}
-            className={inputClass}
+            className={getInputClass(Boolean(errors.city))}
           />
         </FormField>
 
@@ -40,7 +43,7 @@ function StepLocation({ values, onChange }) {
             type="text"
             value={values.area || ""}
             onChange={(e) => onChange("area", e.target.value)}
-            className={inputClass}
+            className={getInputClass(false)}
           />
         </FormField>
       </div>
@@ -51,7 +54,7 @@ function StepLocation({ values, onChange }) {
           value={values.pincode || ""}
           onChange={(e) => onChange("pincode", e.target.value)}
           maxLength={20}
-          className={inputClass}
+          className={getInputClass(false)}
         />
       </FormField>
 
