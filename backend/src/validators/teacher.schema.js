@@ -81,6 +81,7 @@ const availabilitySchema = z.object({
 });
 
 module.exports = {
+  PHONE_PATTERN,
   updateProfileSchema,
   idListSchema,
   qualificationSchema,

@@ -228,9 +228,10 @@ function toPublicProfile(profile) {
     feeMin: profile.feeMin,
     feeMax: profile.feeMax,
     contactPreference: profile.contactPreference,
-    // The number is only public when the teacher explicitly opted in to showing it.
-    contactNumber:
-      profile.contactPreference !== "PLATFORM_ONLY" ? profile.contactNumber : null,
+    // The number itself is never in the public payload; logged-in users unlock it through
+    // GET /:slug/contact-number. This flag only says there is one to unlock.
+    hasContactNumber:
+      profile.contactPreference !== "PLATFORM_ONLY" && Boolean(profile.contactNumber),
     isVerified: profile.isVerified,
     subjects: profile.subjects.map((ts) => ts.subject.name),
     grades: profile.grades.map((tg) => tg.grade.name),

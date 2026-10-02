@@ -11,6 +11,8 @@ const {
   availabilitySchema,
 } = require("../validators/teacher.schema");
 const { searchSchema } = require("../validators/search.schema");
+const { contactRequestSchema } = require("../validators/contact.schema");
+const contactController = require("../controllers/contact.controller");
 const controller = require("../controllers/teacher.controller");
 
 const router = Router();
@@ -52,6 +54,16 @@ router.post(
   controller.addAvailability
 );
 router.delete("/me/availability/:id", ...teacherOnly, controller.deleteAvailability);
+
+// Any logged-in user (not just teachers) can contact a published teacher.
+router.post(
+  "/:slug/contact",
+  requireAuth,
+  validate(contactRequestSchema),
+  contactController.send
+);
+
+router.get("/:slug/contact-number", requireAuth, contactController.revealNumber);
 
 router.get("/:slug", controller.getBySlug);
 

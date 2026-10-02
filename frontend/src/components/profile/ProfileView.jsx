@@ -69,7 +69,7 @@ function ChipGroup({ label, items, className }) {
   );
 }
 
-function ProfileView({ profile, name, onEdit }) {
+function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contactError }) {
   const [activeTab, setActiveTab] = useState("about");
 
   const modes = [
@@ -94,6 +94,9 @@ function ProfileView({ profile, name, onEdit }) {
       ? `https://wa.me/${profile.contactNumber.replace(/\D/g, "")}`
       : `tel:${profile.contactNumber.replace(/[^\d+]/g, "")}`
     : null;
+
+  // On the public page the number is withheld until a logged-in visitor unlocks it.
+  const canReveal = Boolean(onRevealContact) && profile.hasContactNumber && !profile.contactNumber;
 
   const slotsByDay = DAY_ORDER.map((day) => ({
     day,
@@ -178,12 +181,35 @@ function ProfileView({ profile, name, onEdit }) {
             </div>
           )}
 
+          {onContact && (
+            <button
+              type="button"
+              onClick={onContact}
+              className="mt-4 w-full flex items-center justify-center gap-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors"
+            >
+              ✉️ Contact teacher
+            </button>
+          )}
+
+          {canReveal && (
+            <>
+              <button
+                type="button"
+                onClick={onRevealContact}
+                className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium border border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-colors"
+              >
+                {profile.contactPreference === "WHATSAPP" ? "💬 See WhatsApp number" : "📞 See contact number"}
+              </button>
+              {contactError && <p className="text-xs text-red-600 mt-1.5">{contactError}</p>}
+            </>
+          )}
+
           {contactHref && (
             <a
               href={contactHref}
               target={profile.contactPreference === "WHATSAPP" ? "_blank" : undefined}
               rel="noreferrer"
-              className="mt-4 flex items-center justify-center gap-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
+              className="mt-2 flex items-center justify-center gap-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-colors"
             >
               {profile.contactPreference === "WHATSAPP" ? "💬 WhatsApp" : "📞 Call"}{" "}
               {profile.contactNumber}

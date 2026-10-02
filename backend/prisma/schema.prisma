@@ -61,6 +61,8 @@ model User {
   updatedAt       DateTime   @updatedAt
 
   teacherProfile TeacherProfile?
+  sentRequests   ContactRequest[]
+  contactReveals ContactReveal[]
 }
 
 model TeacherProfile {
@@ -104,13 +106,15 @@ model TeacherProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subjects       TeacherSubject[]
-  grades         TeacherGrade[]
-  boards         TeacherBoard[]
-  languages      TeacherLanguage[]
-  qualifications TeacherQualification[]
-  experiences    TeacherExperience[]
-  availabilities TeacherAvailability[]
+  subjects        TeacherSubject[]
+  grades          TeacherGrade[]
+  boards          TeacherBoard[]
+  languages       TeacherLanguage[]
+  qualifications  TeacherQualification[]
+  experiences     TeacherExperience[]
+  availabilities  TeacherAvailability[]
+  contactRequests ContactRequest[]
+  contactReveals  ContactReveal[]
 
   @@index([city])
   @@index([isPublished])
@@ -219,4 +223,32 @@ model TeacherAvailability {
   startTime        String
   endTime          String
   createdAt        DateTime       @default(now())
+}
+
+model ContactRequest {
+  id               Int            @id @default(autoincrement())
+  teacherProfileId Int
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  senderId         Int
+  sender           User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message          String         @db.Text
+  phone            String?
+  isRead           Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+
+  @@index([teacherProfileId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+// One row per (viewer, teacher): the first time a logged-in user unlocked that teacher's number.
+model ContactReveal {
+  id               Int            @id @default(autoincrement())
+  userId           Int
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacherProfileId Int
+  teacherProfile   TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  @@unique([userId, teacherProfileId])
+  @@index([userId, createdAt])
 }

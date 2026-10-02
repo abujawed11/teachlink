@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Link, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
+
+import { getUnreadCount } from "./api/contactApi";
 
 import AuthModal from "./components/auth/AuthModal";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -8,12 +10,24 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import MyProfile from "./pages/dashboard/MyProfile";
 import OnboardingWizard from "./pages/onboarding/OnboardingWizard";
+import Requests from "./pages/Requests";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
 
 function App() {
   const { user, loading, logout } = useAuth();
   const [authMode, setAuthMode] = useState(null);
+  const [unread, setUnread] = useState(0);
+  const { pathname } = useLocation();
+  const isTeacher = user?.role === "TEACHER";
+
+  // Keep the nav badge fresh as a teacher moves around the app.
+  useEffect(() => {
+    if (!isTeacher) return;
+    getUnreadCount()
+      .then(setUnread)
+      .catch(() => {});
+  }, [isTeacher, pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -28,9 +42,22 @@ function App() {
         <Link to="/teachers" className="text-slate-600 hover:text-indigo-600">
           Find Teachers
         </Link>
-        {user?.role === "TEACHER" && (
+        {isTeacher && (
           <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600">
             My Profile
+          </Link>
+        )}
+        {user && (
+          <Link
+            to="/requests"
+            className="text-slate-600 hover:text-indigo-600 flex items-center gap-1.5"
+          >
+            Requests
+            {isTeacher && unread > 0 && (
+              <span className="bg-indigo-600 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
+                {unread}
+              </span>
+            )}
           </Link>
         )}
 
@@ -72,7 +99,18 @@ function App() {
       <Routes>
         <Route path="/" element={<Home onSignUp={() => setAuthMode("register-teacher")} />} />
         <Route path="/teachers" element={<FindTeachers />} />
-        <Route path="/teachers/:slug" element={<TeacherProfile />} />
+        <Route
+          path="/teachers/:slug"
+          element={<TeacherProfile onLogin={() => setAuthMode("login")} />}
+        />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <Requests onUnreadChange={setUnread} />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

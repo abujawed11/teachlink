@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Living document, updated as phases complete. Phases 0–7 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 9 (contact flow) onward is still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–7 and 9 are done and Phase 8 is largely done (project skeleton, DB foundation, authentication, teacher profile backend + onboarding wizard, relational data, public profile page, teacher search/discovery incl. Find Teachers and Home pages, teacher profile dashboard with per-section editing). Phase 10 (admin) onward is still TODO. §26 lists everything that changed relative to the original plan. This file is the source of truth for build order.
 
 ---
 
@@ -445,12 +445,19 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Not built:** Account Settings page (change name/password), view-count display, `GET/PATCH /api/users/me`.
 - **Definition of Done:** a teacher can fully self-manage their profile without developer intervention. ✅ (except Account Settings)
 
-### Phase 9 — Contact Flow
-- **Objective:** Safe default contact path (§16).
-- **Backend:** `ContactRequest` model (visitor name/email/message, linked to `teacherProfileId`), `POST /api/teachers/:slug/contact` (public, rate-limited), teacher-facing list endpoint.
-- **Frontend:** contact form on profile page; "my contact requests" view in dashboard.
-- **Testing checklist:** rate limiting prevents spam; teacher only sees their own requests; direct phone/WhatsApp display respects `contactPreference`.
-- **Definition of Done:** visitors can reach a teacher without the teacher's raw phone number being exposed by default.
+### Phase 9 — Contact Flow ✅ DONE (login required — deliberate change)
+- **Decision:** contacting a teacher **requires an account** (the original plan allowed anonymous contact). Reasons: the teacher sees exactly who is writing, abuse can be limited per account and traced, a sender gets a request history, and the plain `USER` role finally has a purpose.
+- **Backend:** `ContactRequest` model (`teacherProfileId`, `senderId`, `message`, optional `phone`, `isRead`, `createdAt`; migration `add_contact_requests`).
+  - `POST /api/teachers/:slug/contact` — any logged-in user. Message 10–1000 chars, optional phone (same pattern as `contactNumber`). Only published profiles of active teachers (404 otherwise); a teacher can't contact themselves (400); the sender's account must be ACTIVE; **limit of 5 requests per sender per rolling 24 h** (429 `RATE_LIMITED`), enforced from the database rather than per IP.
+  - `GET /api/contact-requests/received` (TEACHER) — own requests, newest first (max 100) with `unreadCount`; includes the sender's name, **account email** and optional phone, shared with that teacher only.
+  - `GET /api/contact-requests/received/unread-count` (TEACHER) — for the nav badge.
+  - `PATCH /api/contact-requests/:id/read` (TEACHER) — scoped to the caller's own profile, so another teacher's id is simply a 404.
+  - `GET /api/contact-requests/sent` (any logged-in user) — own sent requests; the teacher link is dropped if the profile has since been unpublished.
+- **Frontend:** a **"Contact teacher"** button on the public profile card (`ProfileView` `onContact`). Logged-out visitors get the login modal and, once signed in, the form opens automatically. `ContactModal` has a message box with a character counter, an optional phone field, validation mirroring the server, and a "Request sent" confirmation. New `/requests` page (any logged-in user): **Received** tab for teachers (New badge, mailto/tel links, "Mark as read") and **Sent** tab. The nav shows a **Requests** link with an unread badge for teachers, refreshed on every route change.
+- **Privacy:** the teacher's own email/phone is never exposed through this flow; the Call/WhatsApp button still appears only if the teacher opted in via `contactPreference`.
+- **Testing done:** 20 automated API checks against the real database (temporary users, cleaned up afterwards) — anonymous 401, validation, self-contact, unpublished/unknown slug 404, send, teacher-to-teacher, role/ownership (403/404), unread counts, mark read, sent list, no password leakage, and the 6th request in a day returning 429. The frontend compiles and lints clean; the UI itself has **not** been walked through in a browser yet.
+- **Known gaps:** teachers get no email notification (dashboard only — needs an email provider, §25 #3); a teacher viewing their own public page still sees the Contact button and gets a "your own profile" error if they use it; no reply/thread feature (replying happens off-platform via the shown email/phone); no delete/archive.
+- **Definition of Done:** a logged-in visitor can reach a teacher without the teacher's raw phone number being exposed by default. ✅
 
 ### Phase 10 — Admin Basics
 - **Objective:** §12 admin capabilities.
@@ -550,7 +557,7 @@ MVP is complete when:
 - [x] Phase 6 — Public teacher profile (full, privacy-correct; contact form deferred to Phase 9)
 - [x] Phase 7 — Teacher search & discovery (API, Find Teachers, Home)
 - [~] Phase 8 — Teacher dashboard & profile management (done except Account Settings)
-- [ ] Phase 9 — Contact flow
+- [x] Phase 9 — Contact flow (login required; in-app inbox, no email yet)
 - [ ] Phase 10 — Admin basics
 - [ ] Phase 11 — Security, testing, optimization
 - [ ] Phase 12 — Production deployment
@@ -575,6 +582,7 @@ Everything below was added or done differently from what the sections above orig
 - Home page content (hero quick-search, newest teachers, how-it-works, teacher CTA) and a `register-teacher` entry point that pre-ticks the teacher checkbox in the sign-up modal (`defaultAsTeacher` prop on `RegisterForm`).
 - `components/onboarding/stepSave.js` — shared "save this step" logic used by both the wizard and the edit modal.
 - Collapsible "More filters" panel on Find Teachers.
+- Phase 9 contact flow with an in-app inbox (`/requests`) and nav unread badge — and a decision to **require login to contact** a teacher, changing the original "anonymous contact form" idea in §8/§9/§16.
 
 **Changed from the original design**
 - Relation selections are `PUT` (replace-all in a transaction) instead of incremental `POST`s (§11).
@@ -593,4 +601,5 @@ Everything below was added or done differently from what the sections above orig
 - Edit (not just add/delete) for qualifications, experience and availability.
 - Account Settings page and `/api/users/me`.
 - Fee-sort null ordering; whether to make a photo mandatory before publish (§25 #5).
-- Phases 9–12 unchanged: contact flow, admin, security/testing, deployment.
+- Phases 10–12 unchanged: admin, security/testing, deployment.
+- Email notifications for new contact requests; hide the Contact button on a teacher's own public page.
