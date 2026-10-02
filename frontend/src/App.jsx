@@ -1,17 +1,40 @@
+import { Link, Route, Routes } from "react-router-dom";
+
+import FindTeachers from "./pages/FindTeachers";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+import Register from "./pages/Register";
+import TeacherProfile from "./pages/TeacherProfile";
+
 function App() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <div className="bg-white shadow-lg rounded-xl p-8 max-w-sm text-center space-y-4">
-        <h1 className="text-3xl font-bold text-indigo-600">TeachLink</h1>
-        <p className="text-slate-500">
-          If this card has a shadow, rounded corners, and the heading is purple, Tailwind is working.
-        </p>
-        <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-          Test Button
-        </button>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex gap-6">
+        <Link to="/" className="font-bold text-indigo-600">
+          TeachLink
+        </Link>
+        <Link to="/teachers" className="text-slate-600 hover:text-indigo-600">
+          Find Teachers
+        </Link>
+        <Link to="/login" className="text-slate-600 hover:text-indigo-600">
+          Login
+        </Link>
+        <Link to="/register" className="text-slate-600 hover:text-indigo-600">
+          Register
+        </Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/teachers" element={<FindTeachers />} />
+        <Route path="/teachers/:slug" element={<TeacherProfile />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
