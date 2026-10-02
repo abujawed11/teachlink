@@ -23,15 +23,24 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [loadUser]);
 
-  const login = async (email, password) => {
-    const { data } = await apiClient.post("/auth/login", { email, password });
+  const login = async (username, password) => {
+    const { data } = await apiClient.post("/auth/login", { username, password });
     setUser(data.user);
     return data.user;
   };
 
-  const register = async ({ name, email, password }, asTeacher = false) => {
+  const register = async (
+    { name, username, email, password, confirmPassword },
+    asTeacher = false
+  ) => {
     const endpoint = asTeacher ? "/auth/register-teacher" : "/auth/register";
-    const { data } = await apiClient.post(endpoint, { name, email, password });
+    const { data } = await apiClient.post(endpoint, {
+      name,
+      username,
+      email,
+      password,
+      confirmPassword,
+    });
     setUser(data.user);
     return data.user;
   };

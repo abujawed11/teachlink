@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -19,7 +19,7 @@ function Login() {
     setError("");
     setSubmitting(true);
     try {
-      await login(form.email, form.password);
+      await login(form.username, form.password);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error?.message || "Login failed");
@@ -40,12 +40,12 @@ function Login() {
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Email
+            Username
           </label>
           <input
-            type="email"
-            name="email"
-            value={form.email}
+            type="text"
+            name="username"
+            value={form.username}
             onChange={handleChange}
             required
             className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"

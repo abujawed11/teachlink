@@ -18,16 +18,21 @@ async function generateUniqueSlug(name) {
   return slug;
 }
 
-async function registerUser({ name, email, password, role = "USER" }) {
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+async function registerUser({ name, username, email, password, role = "USER" }) {
+  const existingEmail = await prisma.user.findUnique({ where: { email } });
+  if (existingEmail) {
     throw new AppError("This email is already registered", 409, "EMAIL_IN_USE");
+  }
+
+  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  if (existingUsername) {
+    throw new AppError("This username is already taken", 409, "USERNAME_IN_USE");
   }
 
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const user = await prisma.user.create({
-    data: { name, email, password: hashedPassword, role },
+    data: { name, username, email, password: hashedPassword, role },
   });
 
   if (role === "TEACHER") {
@@ -40,10 +45,10 @@ async function registerUser({ name, email, password, role = "USER" }) {
   return user;
 }
 
-async function authenticateUser({ email, password }) {
-  const user = await prisma.user.findUnique({ where: { email } });
+async function authenticateUser({ username, password }) {
+  const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
-    throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    throw new AppError("Invalid username or password", 401, "INVALID_CREDENTIALS");
   }
 
   if (user.status === "SUSPENDED") {
@@ -52,7 +57,7 @@ async function authenticateUser({ email, password }) {
 
   const passwordMatches = await bcrypt.compare(password, user.password);
   if (!passwordMatches) {
-    throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    throw new AppError("Invalid username or password", 401, "INVALID_CREDENTIALS");
   }
 
   return user;
