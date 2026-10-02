@@ -1,20 +1,19 @@
-import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Route, Routes } from "react-router-dom";
 
+import AuthModal from "./components/auth/AuthModal";
 import FindTeachers from "./pages/FindTeachers";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
-import Register from "./pages/Register";
 import TeacherProfile from "./pages/TeacherProfile";
 import { useAuth } from "./hooks/useAuth";
 
 function App() {
   const { user, loading, logout } = useAuth();
-  const navigate = useNavigate();
+  const [authMode, setAuthMode] = useState(null);
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");
   };
 
   return (
@@ -27,15 +26,23 @@ function App() {
           Find Teachers
         </Link>
 
-        <div className="ml-auto flex items-center gap-6">
+        <div className="ml-auto flex items-center gap-3">
           {!loading && !user && (
             <>
-              <Link to="/login" className="text-slate-600 hover:text-indigo-600">
-                Login
-              </Link>
-              <Link to="/register" className="text-slate-600 hover:text-indigo-600">
-                Register
-              </Link>
+              <button
+                type="button"
+                onClick={() => setAuthMode("login")}
+                className="text-slate-600 hover:text-indigo-600 px-3 py-1.5"
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode("register")}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-1.5 rounded-lg transition-colors"
+              >
+                Sign up
+              </button>
             </>
           )}
 
@@ -58,10 +65,12 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/teachers" element={<FindTeachers />} />
         <Route path="/teachers/:slug" element={<TeacherProfile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+
+      {authMode && (
+        <AuthModal initialMode={authMode} onClose={() => setAuthMode(null)} />
+      )}
     </div>
   );
 }
