@@ -1,6 +1,6 @@
 # TeachLink — Implementation Plan
 
-Status: Planning document. No application code has been implemented from this plan yet (auth, profiles, search, etc. are all TODO). This file is the source of truth for build order.
+Status: Living document, updated as phases complete. Phases 0–2 are done (project skeleton, DB foundation, authentication incl. login/register modal). Phase 3 onward is still TODO. This file is the source of truth for build order.
 
 ---
 
@@ -139,6 +139,7 @@ Guiding rule: `User` holds only account/auth concerns. Everything teacher-specif
 **User** (auth + identity only)
 - `id` Int @id @default(autoincrement())
 - `email` String @unique
+- `username` String @unique (added during Phase 2 — login/registration identifier instead of email)
 - `password` String (bcrypt hash)
 - `role` Enum `UserRole { USER TEACHER ADMIN }` default `USER`
 - `name` String
@@ -364,7 +365,7 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 
 ## 17. Phase-wise Implementation
 
-### Phase 0 — Project Cleanup & Foundation
+### Phase 0 — Project Cleanup & Foundation ✅ DONE
 - **Objective:** Replace starter templates with real app shells.
 - **Backend:** split `server.js` into `app.js` (middleware/routes) + `server.js` (listener); add `config/env.js`, `lib/prisma.js`, `middleware/errorHandler.js`, `middleware/asyncHandler.js`.
 - **Frontend:** install `react-router-dom`, `axios`; replace default `App.jsx` with a `<Routes>` shell and placeholder pages; add `src/api/client.js`.
@@ -374,7 +375,7 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Testing checklist:** `GET /api/health` still works through new `app.js`; frontend renders routed placeholder pages; `npm run dev` works on both sides.
 - **Definition of Done:** clean skeleton in place, nothing hardcoded from the old starter remains.
 
-### Phase 1 — Database Foundation
+### Phase 1 — Database Foundation ✅ DONE
 - **Objective:** Model the real schema (without join/detail tables yet).
 - **Backend:** update `schema.prisma`: add `role`/`status` to `User`; add `TeacherProfile` (scalar fields only, no relations beyond `userId`); add `Subject`, `Grade`, `Board`, `Language` lookup tables (empty).
 - **DB changes:** new migration `add_teacher_profile_and_lookups`; seed script (`prisma/seed.js`) for initial Subject/Grade/Board/Language rows.
@@ -383,14 +384,14 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Testing checklist:** migration applies cleanly; seed populates lookup tables; Prisma Studio shows correct relations.
 - **Definition of Done:** schema matches §5 for core tables; seed data present.
 
-### Phase 2 — Authentication
+### Phase 2 — Authentication ✅ DONE
 - **Objective:** Working register/login/logout/me with cookie-based JWT.
-- **Backend:** `auth.service.js`, `auth.controller.js`, `auth.routes.js`, `utils/jwt.js`, `middleware/auth.js` (`requireAuth`, `requireRole`), `validators/auth.schema.js`.
-- **Frontend:** `AuthContext`, `Login.jsx`, `Register.jsx`, `useAuth` hook, route guards.
-- **DB changes:** none beyond Phase 1 (User already has role/status).
-- **API:** `/api/auth/*` from §11.
-- **Testing checklist:** register → login → `GET /me` returns correct user; logout clears cookies; wrong password rejected with generic message; protected route rejects unauthenticated requests.
-- **Definition of Done:** a teacher and a normal user can both sign up and log in; sessions persist across reload via cookie.
+- **Backend:** `auth.service.js`, `auth.controller.js`, `auth.routes.js`, `utils/jwt.js`, `utils/cookies.js`, `utils/slugify.js`, `middleware/auth.js` (`requireAuth`, `requireRole`), `middleware/validate.js`, `validators/auth.schema.js`.
+- **Frontend:** `AuthContext`, `useAuth` hook, and a combined `AuthModal` (login/register toggle in one modal, triggered from nav "Log in"/"Sign up" buttons) instead of separate `/login` and `/register` pages — a deliberate deviation from the original plan for a more modern UX.
+- **DB changes:** added `User.username` (`@unique`, alongside email) beyond the original Phase 1 scope, per a later requirement — login/registration now use `username`, not email, as the identifier.
+- **API:** `/api/auth/*` from §11, with `register`/`register-teacher` now requiring `username` + `confirmPassword` in addition to name/email/password, and `login` taking `username` + `password`.
+- **Testing checklist:** register → login → `GET /me` returns correct user; logout clears cookies; wrong username/password rejected with generic message; duplicate email and duplicate username both rejected with distinct error codes; protected route rejects unauthenticated requests. All verified via curl.
+- **Definition of Done:** a teacher and a normal user can both sign up and log in through the modal; sessions persist across reload via cookie.
 
 ### Phase 3 — Teacher Profile Backend
 - **Objective:** CRUD for a teacher's own profile, still without join tables.
@@ -531,9 +532,9 @@ MVP is complete when:
 
 ## 24. Development Order (checklist)
 
-- [ ] Phase 0 — Cleanup & foundation (routing, axios, app.js split)
-- [ ] Phase 1 — Database foundation (User roles, TeacherProfile scalars, lookup tables, seed)
-- [ ] Phase 2 — Authentication (register/login/logout/me, cookie-based JWT)
+- [x] Phase 0 — Cleanup & foundation (routing, axios, app.js split)
+- [x] Phase 1 — Database foundation (User roles, TeacherProfile scalars, lookup tables, seed)
+- [x] Phase 2 — Authentication (register/login/logout/me, cookie-based JWT, login/register modal, username field)
 - [ ] Phase 3 — Teacher profile backend (scalar CRUD + publish rule)
 - [ ] Phase 4 — Teacher onboarding frontend (multi-step UI)
 - [ ] Phase 5 — Relational data (subjects/grades/boards/languages/qualifications/experience/availability)
