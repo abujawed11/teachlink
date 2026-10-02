@@ -228,6 +228,9 @@ function toPublicProfile(profile) {
     feeMin: profile.feeMin,
     feeMax: profile.feeMax,
     contactPreference: profile.contactPreference,
+    // The number is only public when the teacher explicitly opted in to showing it.
+    contactNumber:
+      profile.contactPreference !== "PLATFORM_ONLY" ? profile.contactNumber : null,
     isVerified: profile.isVerified,
     subjects: profile.subjects.map((ts) => ts.subject.name),
     grades: profile.grades.map((tg) => tg.grade.name),

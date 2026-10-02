@@ -96,6 +96,27 @@ function StepTuition({ values, onChange, errors = {} }) {
           <option value="WHATSAPP">Show my WhatsApp number</option>
         </select>
       </FormField>
+
+      {values.contactPreference && values.contactPreference !== "PLATFORM_ONLY" && (
+        <FormField
+          label={values.contactPreference === "WHATSAPP" ? "WhatsApp Number" : "Phone Number"}
+          required
+          error={errors.contactNumber}
+        >
+          <input
+            type="tel"
+            placeholder="+91 98765 43210"
+            maxLength={20}
+            value={values.contactNumber ?? ""}
+            onChange={(e) => onChange("contactNumber", e.target.value.trim() === "" ? null : e.target.value)}
+            className={getInputClass(Boolean(errors.contactNumber))}
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            This will be shown publicly on your profile. Include your country code
+            {values.contactPreference === "WHATSAPP" ? " so WhatsApp links work" : ""}.
+          </p>
+        </FormField>
+      )}
     </div>
   );
 }

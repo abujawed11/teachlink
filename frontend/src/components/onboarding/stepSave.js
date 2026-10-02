@@ -21,6 +21,7 @@ const STEP_SCALAR_FIELDS = {
     "feeMin",
     "feeMax",
     "contactPreference",
+    "contactNumber",
   ],
   5: ["country", "state", "city", "area", "pincode"],
 };

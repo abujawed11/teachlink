@@ -95,6 +95,7 @@ model TeacherProfile {
   feeMax Int?
 
   contactPreference ContactPreference @default(PLATFORM_ONLY)
+  contactNumber     String?
 
   isPublished  Boolean @default(false)
   isVerified   Boolean @default(false)

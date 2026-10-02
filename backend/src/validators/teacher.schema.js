@@ -2,6 +2,7 @@ const { z } = require("zod");
 
 const GENDERS = ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"];
 const CONTACT_PREFERENCES = ["PLATFORM_ONLY", "PHONE", "WHATSAPP"];
+const PHONE_PATTERN = /^\+?[\d\s-]{7,20}$/;
 
 const updateProfileSchema = z
   .object({
@@ -31,7 +32,20 @@ const updateProfileSchema = z
     feeMax: z.number().int().min(0).nullable().optional(),
 
     contactPreference: z.enum(CONTACT_PREFERENCES).optional(),
+    contactNumber: z
+      .string()
+      .trim()
+      .regex(PHONE_PATTERN, "Enter a valid number (7-15 digits, optional + country code)")
+      .nullable()
+      .optional(),
   })
+  .refine(
+    (data) =>
+      data.contactPreference == null ||
+      data.contactPreference === "PLATFORM_ONLY" ||
+      data.contactNumber !== null,
+    { message: "A contact number is required to show your phone or WhatsApp", path: ["contactNumber"] }
+  )
   .refine(
     (data) =>
       data.feeMin == null || data.feeMax == null || data.feeMin <= data.feeMax,

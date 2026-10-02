@@ -46,7 +46,7 @@ function TeacherProfile() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-8">
+    <div className="max-w-5xl mx-auto p-4 sm:p-8">
       <ProfileView profile={profile} name={profile.name} />
     </div>
   );

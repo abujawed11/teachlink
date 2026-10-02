@@ -29,6 +29,14 @@ function validateStep(step, profile) {
     ) {
       errors.feeMin = "Minimum fee cannot be greater than maximum fee";
     }
+    const showsNumber = profile.contactPreference && profile.contactPreference !== "PLATFORM_ONLY";
+    if (showsNumber) {
+      if (!profile.contactNumber || !profile.contactNumber.trim()) {
+        errors.contactNumber = "Enter the number you want visitors to see";
+      } else if (!/^\+?[\d\s-]{7,20}$/.test(profile.contactNumber.trim())) {
+        errors.contactNumber = "Enter a valid number, e.g. +91 98765 43210";
+      }
+    }
   }
 
   if (step === 5) {
