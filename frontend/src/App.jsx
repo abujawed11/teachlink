@@ -14,6 +14,7 @@ import { getUnreadCount } from "./api/contactApi";
 
 import AuthModal from "./components/auth/AuthModal";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import Footer from "./components/layout/Footer";
 import FindTeachers from "./pages/FindTeachers";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -60,7 +61,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3.5 flex items-center gap-6 shadow-sm">
         <Link to="/" className="flex items-center gap-1.5 font-bold text-indigo-600">
           <GraduationCap className="h-6 w-6" />
@@ -140,55 +141,59 @@ function App() {
         </div>
       </nav>
 
-      <Routes>
-        <Route path="/" element={<Home onSignUp={() => setAuthMode("register-teacher")} />} />
-        <Route path="/teachers" element={<FindTeachers />} />
-        <Route
-          path="/teachers/:slug"
-          element={<TeacherProfile onLogin={openLogin} />}
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute role="ADMIN" onLogin={openLogin}>
-              <AdminPanel />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute onLogin={openLogin}>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/requests"
-          element={
-            <ProtectedRoute onLogin={openLogin}>
-              <Requests onUnreadChange={setUnread} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute role="TEACHER" onLogin={openLogin}>
-              <MyProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute role="TEACHER" onLogin={openLogin}>
-              <OnboardingWizard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home onSignUp={() => setAuthMode("register-teacher")} />} />
+          <Route path="/teachers" element={<FindTeachers />} />
+          <Route
+            path="/teachers/:slug"
+            element={<TeacherProfile onLogin={openLogin} />}
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="ADMIN" onLogin={openLogin}>
+                <AdminPanel />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute onLogin={openLogin}>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/requests"
+            element={
+              <ProtectedRoute onLogin={openLogin}>
+                <Requests onUnreadChange={setUnread} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute role="TEACHER" onLogin={openLogin}>
+                <MyProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute role="TEACHER" onLogin={openLogin}>
+                <OnboardingWizard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+
+      <Footer onSignUp={() => setAuthMode("register-teacher")} />
 
       {authMode && (
         <AuthModal initialMode={authMode} onClose={() => setAuthMode(null)} />
