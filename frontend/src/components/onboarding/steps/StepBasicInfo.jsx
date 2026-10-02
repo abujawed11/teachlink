@@ -1,4 +1,5 @@
 import FormField, { getInputClass } from "../FormField";
+import PhotoUploadField from "../PhotoUploadField";
 
 function StepBasicInfo({ values, onChange, errors = {} }) {
   return (
@@ -30,15 +31,10 @@ function StepBasicInfo({ values, onChange, errors = {} }) {
         />
       </FormField>
 
-      <FormField label="Profile Photo URL">
-        <input
-          type="url"
-          value={values.photoUrl || ""}
-          onChange={(e) => onChange("photoUrl", e.target.value)}
-          placeholder="https://..."
-          className={getInputClass(false)}
-        />
-      </FormField>
+      <PhotoUploadField
+        value={values.photoUrl}
+        onUploaded={(url) => onChange("photoUrl", url)}
+      />
 
       <FormField label="Gender (optional)">
         <select

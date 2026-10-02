@@ -323,12 +323,12 @@ Every mutating route: Zod-validated body, `asyncHandler`-wrapped, ownership-chec
 ## 13. Image / File Storage Plan
 
 - **Never store image bytes in MySQL** — store only a URL/key string on `TeacherProfile.photoUrl`.
-- **Local dev:** `multer` (to be added) saves uploads to `backend/uploads/` (gitignored), served via a static route or a `GET /api/uploads/:file` route; good enough for local development.
-- **Production:** move to an S3-compatible bucket (Cloudflare R2 recommended — low cost, S3 API, no egress fees) using `@aws-sdk/client-s3`; backend generates a pre-signed upload URL or proxies the upload, then stores the resulting object URL.
-- **File naming:** `${userId}-${uuid}.${ext}` to avoid collisions/path traversal; never trust the client-supplied filename.
-- **Upload limits:** cap at ~2–5MB, restrict mimetypes to `image/jpeg|png|webp` at the multer layer.
-- **Validation:** re-check mimetype/magic bytes server-side (don't trust `Content-Type` header alone).
-- **Resizing/compression:** add `sharp` later (Phase 10+) to generate a thumbnail + capped max-dimension version on upload; not required for MVP functionality.
+- **Local dev ✅ DONE (pulled forward during Phase 4):** `multer` saves uploads to `backend/uploads/` (gitignored, `.gitkeep` tracked), served statically at `/uploads/*` via `express.static` with `Cross-Origin-Resource-Policy: cross-origin` (needed since frontend/backend run on different ports and Helmet's default policy would otherwise block the `<img>` load). Endpoint: `POST /api/teachers/me/photo` (multipart, field name `photo`), `requireAuth` + `requireRole('TEACHER')`, old photo file deleted on replacement. Frontend has a real click/drag-to-upload `PhotoUploadField` with instant preview, replacing the earlier URL-text-field placeholder.
+- **Production (still TODO):** move to an S3-compatible bucket (Cloudflare R2 recommended — low cost, S3 API, no egress fees) using `@aws-sdk/client-s3`; backend generates a pre-signed upload URL or proxies the upload, then stores the resulting object URL instead of the local `/uploads/...` path.
+- **File naming ✅ DONE:** `${userId}-${uuid}.${ext}`, extension derived from validated mimetype (not client-supplied filename) to avoid collisions/path traversal.
+- **Upload limits ✅ DONE:** 5MB cap, mimetypes restricted to `image/jpeg|png|webp` at the multer `fileFilter` layer, both client-side (instant feedback) and server-side (authoritative) — multer/fileFilter errors are converted to proper 400 `AppError` responses rather than falling through to a generic 500.
+- **Validation (partial):** mimetype is checked; magic-byte verification beyond the `Content-Type` header is still TODO, deferred as low-priority since this is single-user-uploaded content, not untrusted third-party input at scale yet.
+- **Resizing/compression (still TODO):** add `sharp` later (Phase 10+) to generate a thumbnail + capped max-dimension version on upload; not required for MVP functionality.
 
 ## 14. Validation (Zod)
 
@@ -407,7 +407,8 @@ Backend validation is mandatory on every mutating endpoint; frontend may reuse t
 - **Frontend built:** `api/teacherApi.js` (get/update/publish/unpublish); `components/onboarding/Stepper.jsx`, `FormField.jsx`; five steps — `StepBasicInfo`, `StepProfessional`, `StepTuition`, `StepLocation`, `StepReview` — assembled in `pages/onboarding/OnboardingWizard.jsx`; `components/common/ProtectedRoute.jsx` (auth + role guard) protecting the new `/onboarding` route; a "My Profile" nav link shown only to `TEACHER`-role users.
 - **Save-as-draft behavior:** each step's fields are PATCHed to `/api/teachers/me` on "Save & Continue" (not on every keystroke), so partial progress is persisted to the DB immediately and a refresh resumes with whatever was last saved — not purely local/unsaved state.
 - **Publish:** final step calls `POST /api/teachers/me/publish`; the existing Phase 3 server-side rule (city + a teaching mode + headline/bio) is the actual gate — the wizard surfaces the server's error message rather than re-implementing the rule client-side, so the two can't drift out of sync.
-- **Testing checklist:** `npm run build` passes clean; manual browser walkthrough still to be done by the user (register as teacher → nav shows "My Profile" → step through all 5 steps → publish → view public profile link).
+- **Testing checklist:** `npm run build` passes clean; manual browser walkthrough confirmed by user (registered as teacher, nav showed "My Profile", wizard reachable and functional).
+- **Post-launch refinements (same phase, added after initial user feedback):** per-step client-side validation (required-field asterisks on Headline/Teaching Modes/City, inline errors, blocks "Save & Continue" until fixed) instead of only surfacing errors at final publish; a live "Profile Strength" percentage meter with encouraging copy; a live preview panel showing the profile card updating in real time as fields change; a real click/drag-to-upload photo picker (see §13) replacing the original URL-text-field placeholder.
 - **Definition of Done:** a teacher can go from registration to a published scalar-field profile end-to-end in the UI.
 
 ### Phase 5 — Relational Data (Subjects/Grades/Boards/Languages + sub-resources)
