@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { BadgeCheck, GraduationCap, IndianRupee, MapPin } from "lucide-react";
+import { formatGrades } from "../../utils/formatGrades";
 
 const MAX_CHIPS = 3;
 
@@ -79,7 +80,7 @@ function TeacherCard({ teacher }) {
 
       <div className="mt-4 space-y-2">
         <ChipRow items={teacher.subjects} className="bg-emerald-100 text-emerald-700" />
-        <ChipRow items={teacher.grades} className="bg-amber-100 text-amber-700" />
+        <ChipRow items={formatGrades(teacher.grades)} className="bg-amber-100 text-amber-700" />
       </div>
 
       {teacher.modes.length > 0 && (

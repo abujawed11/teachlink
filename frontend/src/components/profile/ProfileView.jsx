@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Phone,
 } from "lucide-react";
+import { formatGrades } from "../../utils/formatGrades";
 
 const DAY_ORDER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_LABELS = {
@@ -319,7 +320,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
               >
                 <div className="space-y-4">
                   <ChipGroup label="Subjects" items={profile.subjects} className="bg-emerald-100 text-emerald-700" />
-                  <ChipGroup label="Classes" items={profile.grades} className="bg-amber-100 text-amber-700" />
+                  <ChipGroup label="Classes" items={formatGrades(profile.grades?.map(labelOf))} className="bg-amber-100 text-amber-700" />
                   <ChipGroup label="Boards" items={profile.boards} className="bg-sky-100 text-sky-700" />
                   <ChipGroup label="Languages" items={profile.languages} className="bg-slate-100 text-slate-700" />
                 </div>

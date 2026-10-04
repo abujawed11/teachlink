@@ -1,4 +1,5 @@
 import { GraduationCap, IndianRupee, UserRound } from "lucide-react";
+import { formatGrades } from "../../utils/formatGrades";
 
 function ProfilePreviewCard({ values, compact }) {
   const modes = [
@@ -83,12 +84,12 @@ function ProfilePreviewCard({ values, compact }) {
 
       {values.grades?.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {values.grades.map((g) => (
+          {formatGrades(values.grades.map((g) => g.name)).map((label) => (
             <span
-              key={g.id}
+              key={label}
               className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
             >
-              {g.name}
+              {label}
             </span>
           ))}
         </div>
