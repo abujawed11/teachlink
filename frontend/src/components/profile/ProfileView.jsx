@@ -1,7 +1,15 @@
 import { useState } from "react";
 import {
   BadgeCheck,
+  BookOpen,
+  CalendarClock,
+  Clock,
+  FileText,
   GraduationCap,
+  Briefcase,
+  Pencil,
+  Plus,
+  Settings2,
   IndianRupee,
   Lock,
   Mail,
@@ -28,12 +36,14 @@ const formatMonth = (date) =>
   date ? new Date(date).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "";
 
 function EditButton({ onClick, label }) {
+  const Icon = label === "Edit" ? Pencil : Plus;
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1 rounded-lg transition-colors"
     >
+      <Icon className="h-3.5 w-3.5" />
       {label}
     </button>
   );
@@ -41,15 +51,18 @@ function EditButton({ onClick, label }) {
 
 // A block inside a tab. In public mode (no onEdit) an empty block is hidden; for the owner it
 // becomes an "+ Add" prompt.
-function Block({ title, editKey, onEdit, isEmpty, emptyHint, children }) {
+function Block({ title, icon: Icon, editKey, onEdit, isEmpty, emptyHint, children }) {
   if (isEmpty && !onEdit) return null;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{title}</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-indigo-700 uppercase tracking-wide">
+          {Icon && <Icon className="h-4 w-4" />}
+          {title}
+        </h3>
         {onEdit && (
-          <EditButton onClick={() => onEdit(editKey)} label={isEmpty ? "+ Add" : "Edit"} />
+          <EditButton onClick={() => onEdit(editKey)} label={isEmpty ? "Add" : "Edit"} />
         )}
       </div>
       {isEmpty ? <p className="text-sm text-slate-400 italic">{emptyHint}</p> : children}
@@ -273,21 +286,23 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
             <>
               <Block
                 title="About"
+                icon={FileText}
                 editKey="basic"
                 onEdit={onEdit}
                 isEmpty={!profile.bio}
                 emptyHint="Tell visitors about your teaching style and experience."
               >
-                <p className="text-slate-700 whitespace-pre-line">{profile.bio}</p>
+                <p className="text-slate-900 whitespace-pre-line">{profile.bio}</p>
               </Block>
               <Block
                 title="Location"
+                icon={MapPin}
                 editKey="location"
                 onEdit={onEdit}
                 isEmpty={location.length === 0}
                 emptyHint="Add your city so nearby students can find you."
               >
-                <p className="text-slate-700">{location.join(", ")}</p>
+                <p className="text-slate-900">{location.join(", ")}</p>
               </Block>
             </>
           )}
@@ -296,6 +311,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
             <>
               <Block
                 title="Subjects, classes & boards"
+                icon={BookOpen}
                 editKey="subjects"
                 onEdit={onEdit}
                 isEmpty={!hasTeaching}
@@ -310,6 +326,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
               </Block>
               <Block
                 title="Teaching options"
+                icon={Settings2}
                 editKey="tuition"
                 onEdit={onEdit}
                 isEmpty={modes.length === 0 && !hasFee}
@@ -330,6 +347,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
           {currentTab === "experience" && (
             <Block
               title="Qualifications & experience"
+              icon={Briefcase}
               editKey="professional"
               onEdit={onEdit}
               isEmpty={!hasExperience}
@@ -385,6 +403,7 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
           {currentTab === "availability" && (
             <Block
               title="Weekly availability"
+              icon={CalendarClock}
               editKey="availability"
               onEdit={onEdit}
               isEmpty={slotsByDay.length === 0}
@@ -393,7 +412,10 @@ function ProfileView({ profile, name, onEdit, onContact, onRevealContact, contac
               <ul className="space-y-1.5">
                 {slotsByDay.map(({ day, slots }) => (
                   <li key={day} className="flex gap-4 text-sm">
-                    <span className="w-24 font-medium text-slate-700">{DAY_LABELS[day]}</span>
+                    <span className="w-28 flex items-center gap-1.5 font-medium text-slate-900">
+                      <Clock className="h-3.5 w-3.5 text-slate-400" />
+                      {DAY_LABELS[day]}
+                    </span>
                     <span className="text-slate-600">
                       {slots.map((slot) => `${slot.startTime} – ${slot.endTime}`).join(", ")}
                     </span>
